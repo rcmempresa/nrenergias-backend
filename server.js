@@ -1,44 +1,56 @@
+// server.js
 const express = require('express');
-const { Pool } = require('pg');
+const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const productRoutes = require('./routes/productRoutes');
+const authRoutes = require('./routes/authRoutes');
+const cartRoutes = require('./routes/cartRoutes');
+const checkoutRoutes = require ('./routes/checkoutRoutes');
+const checkoutRoutesEasyPay = require ('./routes/checkoutRoutesEasyPay');
+const favoriteRoutes = require ('./routes/favoriteRoutes');
+const contactRoutes = require ('./routes/contactRoutes');
+const userRoutes = require ('./routes/userRoutes');
+const encomendasRoutes = require('./routes/encomendasRoutes');
+const pagamentoMultibanco = require('./routes/pagamentoMultibanco');
+
 require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 5000;
 
-// Configuração do Pool de Conexão com PostgreSQL
-const pool = new Pool({
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-});
+// Usar o cookie-parser para acessar os cookies
+app.use(cookieParser());
 
-// Verificar a conexão com o banco
-pool.connect()
-  .then(() => console.log('Conexão com o PostgreSQL bem-sucedida!'))
-  .catch(err => console.error('Erro ao conectar ao banco de dados', err));
+// Ativar CORS para todas as origens (apenas para desenvolvimento)
+// Ou, se você quiser limitar as origens permitidas:
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true, 
+}));
 
 // Middleware para permitir JSON nas requisições
 app.use(express.json());
 
+
+
+//rotas
+app.use('/products', productRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/carrinho', cartRoutes);
+app.use('/api/checkout', checkoutRoutes);
+app.use('/api/favoritos',favoriteRoutes);
+app.use('/api/contacto',contactRoutes);
+app.use('/api/users',userRoutes);
+app.use('/api/encomendas',encomendasRoutes);
+app.use('/api/checkout/easypay',checkoutRoutesEasyPay);
+app.use('/api/referencia/multibanco',pagamentoMultibanco);
+
 // Rota de Teste
+/*
 app.get('/', (req, res) => {
   res.send('Servidor Backend funcionando!');
-});
+});*/
 
-// Exemplo de rota para buscar produtos (ajuste conforme necessário)
-app.get('/produtos', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM produtos');
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Erro ao buscar produtos');
-  }
-});
-
-// Iniciar o servidor
+const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);
 });

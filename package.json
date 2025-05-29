@@ -2,7 +2,7 @@
   "name": "nrenergias-backend",
   "version": "1.0.0",
   "description": "Backend para a plataforma NR Energias, com Express.js e PostgreSQL",
-  "main": "server.js", 
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
@@ -25,11 +25,22 @@
   },
   "homepage": "https://github.com/rcmempresa/nrenergias-backend#readme",
   "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "pg": "^8.14.1"
+    "js-cookie": "^3.0.5",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^6.10.1",
+    "pg": "^8.14.1",
+    "pg-hstore": "^2.3.4",
+    "react-cookie": "^8.0.1",
+    "sequelize": "^6.37.6",
+    "universal-cookie": "^8.0.1"
   },
   "devDependencies": {
+    "@types/js-cookie": "^3.0.6",
     "nodemon": "^3.1.9"
   }
 }
