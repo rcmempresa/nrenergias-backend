@@ -121,7 +121,7 @@ const decreaseQuantity = async (req, res) => {
     }
 
     if (item.quantidade <= 1) {
-      return res.status(400).json({ message: 'A quantidade mínima é 1. Remova o item do carrinho se não desejar mais.' });
+      return res.status(400).json({ message: 'A quantidade mínima é 1. Remova o item do carrinho se não o quiser mais.' });
     }
 
     const newQuantity = item.quantidade - 1;

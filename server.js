@@ -12,6 +12,9 @@ const contactRoutes = require ('./routes/contactRoutes');
 const userRoutes = require ('./routes/userRoutes');
 const encomendasRoutes = require('./routes/encomendasRoutes');
 const pagamentoMultibanco = require('./routes/pagamentoMultibanco');
+const pagamentoMbway = require('./routes/pagamentoMbway');
+const pagamentoCC = require('./routes/pagamentoCC');
+const notificacoes = require('./routes/notificacoes');
 
 require('dotenv').config();
 
@@ -43,6 +46,37 @@ app.use('/api/users',userRoutes);
 app.use('/api/encomendas',encomendasRoutes);
 app.use('/api/checkout/easypay',checkoutRoutesEasyPay);
 app.use('/api/referencia/multibanco',pagamentoMultibanco);
+app.use('/api/referencia/mbway',pagamentoMbway);
+app.use('/api/referencia/cc',pagamentoCC);
+app.use('/api/easypay',notificacoes);
+/*app.post('/api/easypay/notifications', async (req, res) => {
+  const notification = req.body;
+  console.log('Payload da notificação:', notification);
+
+  try {
+    // Confirma se o pagamento foi concluído com sucesso
+    if (notification.status === 'success') {
+      const orderId = notification.key;  // pega o ID do pedido
+
+      if (orderId) {
+        await pool.query(
+          "UPDATE orders SET payment_status = 'pago' WHERE id = $1",
+          [orderId]
+        );
+        console.log(`Pedido #${orderId} marcado como pago.`);
+      } else {
+        console.warn('ID do pedido não encontrado na notificação.');
+      }
+    }
+
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('Erro ao processar notificação de pagamento:', error);
+    res.status(500).send('Erro no servidor');
+  }
+});*/
+
+
 
 // Rota de Teste
 /*

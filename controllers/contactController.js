@@ -38,7 +38,7 @@ const enviar = async (req, res) => {
       to: process.env.GMAIL_USER,
       subject: 'Nova mensagem do site',
       html: `
-        <h2>Nova mensagem de contato</h2>
+        <h2>Nova mensagem de contacto!</h2>
         <p><strong>Nome:</strong> ${name}</p>
         <p><strong>Email:</strong> ${email}</p>
         <p><strong>Mensagem:</strong></p>
@@ -48,17 +48,17 @@ const enviar = async (req, res) => {
 
     // 2. Email de confirmação automática para o cliente
     await transporterConfirmacao.sendMail({
-      from: `"1way" <${process.env.CONFIRMATION_EMAIL_USER}>`,
+      from: `"NRenergias" <${process.env.CONFIRMATION_EMAIL_USER}>`,
       to: email,
-      subject: 'Recebemos sua mensagem!',
+      subject: 'Recebemos a sua mensagem!',
       html: `
         <h2>Olá ${name},</h2>
-        <p>Obrigado por entrar em contacto com a 1way. Recebemos a sua mensagem e entraremos em contacto brevemente.</p>
+        <p>Obrigado por entrar em contacto com a Nrenergias. Recebemos a sua mensagem e entraremos em contacto brevemente.</p>
         <p><em>Resumo da sua mensagem:</em></p>
         <p>${message}</p>
         <br />
         <p>Com os melhores cumprimentos,</p>
-        <p>Equipa 1way</p>
+        <p>Equipa Nrenergias</p>
       `,
     });
 
