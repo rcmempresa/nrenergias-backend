@@ -26,7 +26,7 @@ app.use(cookieParser());
 // Ativar CORS para todas as origens (apenas para desenvolvimento)
 // Ou, se você quiser limitar as origens permitidas:
 app.use(cors({
-  origin: 'https://nrenergias-frontend.vercel.app',
+  origin: 'https://nrenergias-frontend-j1ftlp03h.vercel.app',
   credentials: true, 
 }));
 
