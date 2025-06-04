@@ -1,4 +1,28 @@
 const pool = require('../config/db');
+const nodemailer = require('nodemailer');
+require('dotenv').config();
+
+const sendPaymentEmail = async (to, subject, text) => {
+  const transporterGmail = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_PASS,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.GMAIL_USER,
+    to,
+    subject,
+    text,
+  };
+
+  await transporterGmail.sendMail(mailOptions);
+  console.log(`Email enviado para: ${to}`);
+};
 
 const notification = async (req, res) => {
   const notification = req.body;
@@ -7,11 +31,29 @@ const notification = async (req, res) => {
     if (notification.status === 'success') {
       const orderId = notification.key;
       if (orderId) {
-        await pool.query(
-          "UPDATE orders SET payment_status = 'pago' WHERE id = $1",
+        // Atualiza o estado de pagamento e busca o email do cliente
+        const result = await pool.query(
+          "UPDATE orders SET payment_status = 'pago' WHERE id = $1 RETURNING email",
           [orderId]
         );
+
         console.log(`Pedido #${orderId} marcado como pago.`);
+
+        const empresaEmail = process.env.GMAIL_USER;
+        const empresaSubject = `Encomenda #${orderId} foi paga!`;
+        const empresaText = `A encomenda #${orderId} foi paga e está pronta para envio.`;
+
+        await sendPaymentEmail(empresaEmail, empresaSubject, empresaText);
+
+        const clienteEmail = result.rows[0]?.email;
+        if (clienteEmail) {
+          const clienteSubject = 'A tua encomenda foi paga!';
+          const clienteText = `Olá! A tua encomenda #${orderId} foi paga e está pronta para envio. Obrigado pela compra!`;
+
+          await sendPaymentEmail(clienteEmail, clienteSubject, clienteText);
+        } else {
+          console.warn(`Nenhum email de cliente encontrado para o pedido #${orderId}.`);
+        }
       } else {
         console.warn('ID do pedido não encontrado na notificação.');
       }
@@ -25,4 +67,3 @@ const notification = async (req, res) => {
 };
 
 module.exports = { notification };
-
