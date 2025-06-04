@@ -3,6 +3,30 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const authConfig = require('../config/authConfig');
 const User = require('../models/User');
+const nodemailer = require('nodemailer');
+require('dotenv').config();
+
+const sendPaymentEmail = async (to, subject, text) => {
+  const transporterGmail = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    auth: {
+      user: process.env.GMAIL_USER,
+      pass: process.env.GMAIL_PASS,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.GMAIL_USER,
+    to,
+    subject,
+    text,
+  };
+
+  await transporterGmail.sendMail(mailOptions);
+  console.log(`Email enviado para: ${to}`);
+};
 
 
 const signup = async (req, res) => {
@@ -14,17 +38,25 @@ const signup = async (req, res) => {
       return res.status(400).json({ message: 'E-mail já registrado' });
     }
 
-    
     const hashedPassword = await bcrypt.hash(senha, 10);
 
-    
     const newUser = await User.createUser(nome, email, hashedPassword, endereco, telefone);
-    return res.status(201).json({ message: 'Utilizador criado com sucesso', user: newUser });
+
+    const subject = 'Bem-vindo à nossa plataforma!';
+    const text = `Olá ${nome}, obrigado por criar a sua conta! Desejamos-lhe umas ótimas compras!`;
+
+    await sendPaymentEmail(email, subject, text);
+
+    return res.status(201).json({
+      message: 'Utilizador criado com sucesso',
+      user: { id: newUser.id, nome, email, telefone },
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Erro interno do servidor' });
   }
 };
+
 
 
 const login = async (req, res) => {
@@ -64,9 +96,9 @@ const logout = (req, res) => {
   try {
     
     res.clearCookie('token', {
-      httpOnly: true, // Garante que o cookie não pode ser acessado via JavaScript
-      secure: process.env.NODE_ENV === 'production', // Só permite a remoção do cookie via HTTPS em produção
-      sameSite: 'Strict', // Evita o envio do cookie em requisições de outros sites
+      httpOnly: true, 
+      secure: process.env.NODE_ENV === 'production', 
+      sameSite: 'Strict',
     });
 
     return res.json({ message: 'Logout bem-sucedido' });
