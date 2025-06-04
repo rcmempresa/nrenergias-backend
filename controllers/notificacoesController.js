@@ -31,21 +31,35 @@ const notification = async (req, res) => {
     if (notification.status === 'success') {
       const orderId = notification.key;
       if (orderId) {
-        // Atualiza o estado de pagamento e busca o email do cliente
+        // 1) Marca a encomenda como paga e obtém o user_id
         const result = await pool.query(
-          "UPDATE orders SET payment_status = 'pago' WHERE id = $1 RETURNING email",
+          "UPDATE orders SET payment_status = 'pago' WHERE id = $1 RETURNING user_id",
           [orderId]
         );
 
         console.log(`Pedido #${orderId} marcado como pago.`);
 
+       
+        const userId = result.rows[0]?.user_id;
+        let clienteEmail;
+
+        if (userId) {
+          const userResult = await pool.query(
+            "SELECT email FROM users WHERE id = $1",
+            [userId]
+          );
+
+          clienteEmail = userResult.rows[0]?.email;
+        }
+
+        // 3) Envia email para a tua empresa
         const empresaEmail = process.env.GMAIL_USER;
         const empresaSubject = `Encomenda #${orderId} foi paga!`;
         const empresaText = `A encomenda #${orderId} foi paga e está pronta para envio.`;
 
         await sendPaymentEmail(empresaEmail, empresaSubject, empresaText);
 
-        const clienteEmail = result.rows[0]?.email;
+        // 4) Envia email para o cliente, se existir
         if (clienteEmail) {
           const clienteSubject = 'A tua encomenda foi paga!';
           const clienteText = `Olá! A tua encomenda #${orderId} foi paga e está pronta para envio. Obrigado pela compra!`;
