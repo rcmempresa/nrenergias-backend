@@ -2,7 +2,8 @@ const pool = require('../config/db');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
-const sendPaymentEmail = async (to, subject, text) => {
+// --- Função para envio de email com HTML ---
+const sendPaymentEmail = async (to, subject, html) => {
   const transporterGmail = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
@@ -17,21 +18,73 @@ const sendPaymentEmail = async (to, subject, text) => {
     from: process.env.GMAIL_USER,
     to,
     subject,
-    text,
+    html,
   };
 
   await transporterGmail.sendMail(mailOptions);
   console.log(`Email enviado para: ${to}`);
 };
 
+// --- Template para a empresa ---
+const gerarEmailEmpresa = (orderId) => `
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>Encomenda paga</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); }
+    h2 { color: #00723f; }
+    p { font-size: 16px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>📦 Encomenda #${orderId} foi paga!</h2>
+    <p>A encomenda com ID <strong>#${orderId}</strong> foi marcada como paga e está pronta para ser processada e enviada.</p>
+    <p>Verifique no sistema e prepare o envio.</p>
+  </div>
+</body>
+</html>
+`;
+
+// --- Template para o cliente ---
+const gerarEmailCliente = (orderId) => `
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pagamento recebido</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f8f8f8; margin: 0; padding: 0; }
+    .container { max-width: 600px; margin: 20px auto; background-color: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); }
+    h2 { color: #00723f; }
+    p { font-size: 16px; }
+    .footer { margin-top: 30px; font-size: 12px; color: #999; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>✅ Pagamento confirmado!</h2>
+    <p>Olá! Recebemos o pagamento da tua encomenda <strong>#${orderId}</strong>.</p>
+    <p>O teu pedido está agora a ser preparado para envio. Obrigado pela tua confiança!</p>
+    <div class="footer">NRenergias • www.nrenergias.pt</div>
+  </div>
+</body>
+</html>
+`;
+
+// --- Handler principal ---
 const notification = async (req, res) => {
   const notification = req.body;
 
   try {
     if (notification.status === 'success') {
       const orderId = notification.key;
+
       if (orderId) {
-        // 1) Marca a encomenda como paga e obtém o user_id
+        // 1) Atualiza status para "pago"
         const result = await pool.query(
           "UPDATE orders SET payment_status = 'pago' WHERE id = $1 RETURNING user_id",
           [orderId]
@@ -39,10 +92,10 @@ const notification = async (req, res) => {
 
         console.log(`Pedido #${orderId} marcado como pago.`);
 
-       
         const userId = result.rows[0]?.user_id;
         let clienteEmail;
 
+        // 2) Busca email do cliente
         if (userId) {
           const userResult = await pool.query(
             "SELECT email FROM users WHERE id = $1",
@@ -52,19 +105,21 @@ const notification = async (req, res) => {
           clienteEmail = userResult.rows[0]?.email;
         }
 
-        // 3) Envia email para a tua empresa
+        // 3) Email para empresa
         const empresaEmail = process.env.GMAIL_USER;
-        const empresaSubject = `Encomenda #${orderId} foi paga!`;
-        const empresaText = `A encomenda #${orderId} foi paga e está pronta para envio.`;
+        await sendPaymentEmail(
+          empresaEmail,
+          `Encomenda #${orderId} foi paga!`,
+          gerarEmailEmpresa(orderId)
+        );
 
-        await sendPaymentEmail(empresaEmail, empresaSubject, empresaText);
-
-        // 4) Envia email para o cliente, se existir
+        // 4) Email para cliente, se houver
         if (clienteEmail) {
-          const clienteSubject = 'A tua encomenda foi paga!';
-          const clienteText = `Olá! A tua encomenda #${orderId} foi paga e está pronta para envio. Obrigado pela compra!`;
-
-          await sendPaymentEmail(clienteEmail, clienteSubject, clienteText);
+          await sendPaymentEmail(
+            clienteEmail,
+            'A tua encomenda foi paga!',
+            gerarEmailCliente(orderId)
+          );
         } else {
           console.warn(`Nenhum email de cliente encontrado para o pedido #${orderId}.`);
         }
