@@ -120,18 +120,83 @@ const enviar = async (req, res) => {
 
   try {
     // 1. Email do cliente para o proprietário
-    await transporterGmail.sendMail({
-      from: `"${name}" <${email}>`,
-      to: process.env.GMAIL_USER,
-      subject: 'Nova mensagem do site',
-      html: `
-        <h2>Nova mensagem de contacto!</h2>
-        <p><strong>Nome:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Mensagem:</strong></p>
-        <p>${message}</p>
-      `,
-    });
+  await transporterGmail.sendMail({
+  from: `"${name}" <${email}>`,
+  to: process.env.GMAIL_USER,
+  subject: '📩 Nova mensagem de contacto pelo site',
+  html: `
+    <!DOCTYPE html>
+    <html lang="pt">
+      <head>
+        <meta charset="UTF-8" />
+        <title>Nova Mensagem</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            padding: 0;
+            margin: 0;
+          }
+          .container {
+            max-width: 600px;
+            margin: 30px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+          }
+          h2 {
+            color: #00723f;
+            margin-bottom: 20px;
+          }
+          .info {
+            margin-bottom: 20px;
+          }
+          .info p {
+            margin: 6px 0;
+            font-size: 16px;
+          }
+          .label {
+            font-weight: bold;
+            color: #444;
+          }
+          .message-box {
+            border-left: 4px solid #00723f;
+            background-color: #f4f4f4;
+            padding: 15px;
+            font-style: italic;
+            white-space: pre-line;
+          }
+          .footer {
+            margin-top: 30px;
+            font-size: 13px;
+            color: #999;
+            text-align: center;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h2>📩 Nova mensagem de contacto</h2>
+          <div class="info">
+            <p><span class="label">Nome:</span> ${name}</p>
+            <p><span class="label">Email:</span> ${email}</p>
+          </div>
+          <div>
+            <p class="label">Mensagem:</p>
+            <div class="message-box">
+              ${message}
+            </div>
+          </div>
+          <div class="footer">
+            Mensagem enviada através do formulário do site.
+          </div>
+        </div>
+      </body>
+    </html>
+  `,
+});
+
 
     // 2. Email de confirmação automática para o cliente
     const htmlConfirmacao = gerarTemplateConfirmacao(name, message);
