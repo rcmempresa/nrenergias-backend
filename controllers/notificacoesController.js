@@ -117,7 +117,7 @@ const notification = async (req, res) => {
         if (clienteEmail) {
           await sendPaymentEmail(
             clienteEmail,
-            'A tua encomenda foi paga com sucesso!',
+            'A tua encomenda foi paga com sucesso, em breve receberás o teu produto!',
             gerarEmailCliente(orderId)
           );
         } else {
