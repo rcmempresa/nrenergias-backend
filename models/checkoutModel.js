@@ -31,11 +31,11 @@ const createOrder = async (user_id, total_amount) => {
 
 // Função para criar os detalhes de envio (tabela shipping_details)
 const createShippingDetails = async (order_id, shipping_details) => {
-  const client = await pool.connect(); // Conecta ao banco de dados diretamente no modelo
+  const client = await pool.connect(); 
   try {
     const query = `
-      INSERT INTO shipping_details (order_id, full_name, address, city, zip_code, country, phone, tracking_number, status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
+      INSERT INTO shipping_details (order_id, full_name, address, city, zip_code, country, phone, tracking_number, status, nif)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
     `;
     const values = [
       order_id,
@@ -46,7 +46,8 @@ const createShippingDetails = async (order_id, shipping_details) => {
       shipping_details.country,
       shipping_details.phone,
       shipping_details.tracking_number || null,
-      'pendente'
+      'pendente',
+      shipping_details.nif || null,
     ];
 
     await client.query(query, values);
