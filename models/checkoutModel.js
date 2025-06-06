@@ -37,16 +37,19 @@ const createShippingDetails = async (client, order_id, shipping_details) => {
   
 const createOrderItems = async (client, orderId, items) => {
   const query = `
-    INSERT INTO order_items (order_id, product_id, quantity, price, total)
+    INSERT INTO order_items (order_id, product_id, quantity, price, total, description)
     VALUES ($1, $2, $3, $4, $5, $6)
   `;
 
   for (const item of items) {
     const isMontagem = item.product_id === "montagem";
 
+    
+    const productId = isMontagem ? 0 : item.product_id;
+
     const values = [
       orderId,
-      isMontagem ? null : item.product_id,
+      productId,
       item.quantity,
       item.price,
       item.price * item.quantity,
@@ -56,6 +59,7 @@ const createOrderItems = async (client, orderId, items) => {
     await client.query(query, values);
   }
 };
+
 
 
 
