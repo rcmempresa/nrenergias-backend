@@ -166,7 +166,7 @@ const notification = async (req, res) => {
         await sendPaymentEmail(
           empresaEmail,
           `Encomenda #${orderId} foi paga!`,
-          gerarEmailEmpresa(orderId)
+          gerarEmailEmpresa(orderId, tabelaHtml)
         );
 
         // 5) Email para cliente
