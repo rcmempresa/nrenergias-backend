@@ -37,7 +37,7 @@ const createShippingDetails = async (client, order_id, shipping_details) => {
   
 const createOrderItems = async (client, orderId, items) => {
   const query = `
-    INSERT INTO order_items (order_id, product_id, quantity, price, total, description)
+    INSERT INTO order_items (order_id, product_id, quantity, price, total)
     VALUES ($1, $2, $3, $4, $5, $6)
   `;
 

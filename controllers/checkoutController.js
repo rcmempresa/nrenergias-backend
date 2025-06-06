@@ -5,6 +5,8 @@ const handleCheckout = async (req, res) => {
   const client = await pool.connect();
 
   try {
+    console.log('REQ BODY:', JSON.stringify(req.body, null, 2));  // Ver o que vem do frontend
+
     await client.query('BEGIN');
 
     const { shipping_details, order } = req.body;
@@ -13,7 +15,7 @@ const handleCheckout = async (req, res) => {
 
     const orderId = await checkoutModel.createOrder(client, user_id, total_amount);
     await checkoutModel.createShippingDetails(client, orderId, shipping_details);
-    await checkoutModel.createOrderItems(client, orderId, items); 
+    await checkoutModel.createOrderItems(client, orderId, items);
 
     await client.query('COMMIT');
     res.status(201).json({ message: 'Checkout concluído com sucesso', order_id: orderId });
@@ -25,6 +27,7 @@ const handleCheckout = async (req, res) => {
     client.release();
   }
 };
+
 
   
   
