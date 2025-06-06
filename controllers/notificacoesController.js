@@ -25,55 +25,79 @@ const sendPaymentEmail = async (to, subject, html) => {
   console.log(`Email enviado para: ${to}`);
 };
 
-// --- Template para a empresa ---
-const gerarEmailEmpresa = (orderId) => `
-<!DOCTYPE html>
-<html lang="pt">
-<head>
-  <meta charset="UTF-8" />
-  <title>Encomenda paga</title>
-  <style>
-    body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); }
-    h2 { color: #00723f; }
-    p { font-size: 16px; line-height: 1.5; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h2>📦 Encomenda #${orderId} foi paga!</h2>
-    <p>A encomenda com ID <strong>#${orderId}</strong> foi marcada como paga e está pronta para ser processada e enviada.</p>
-    <p>Verifique no sistema e prepare o envio.</p>
-  </div>
-</body>
-</html>
-`;
+// --- Template para a empresa com detalhes ---
+const gerarEmailEmpresa = (orderId, order, items, user) => {
+  const listaProdutosHtml = items.map(item => `
+    <li>${item.product_name} - Quantidade: ${item.quantity} - Preço: €${item.price.toFixed(2)}</li>
+  `).join('');
 
-// --- Template para o cliente ---
-const gerarEmailCliente = (orderId) => `
-<!DOCTYPE html>
-<html lang="pt">
-<head>
-  <meta charset="UTF-8" />
-  <title>Pagamento recebido</title>
-  <style>
-    body { font-family: Arial, sans-serif; background-color: #f8f8f8; margin: 0; padding: 0; }
-    .container { max-width: 600px; margin: 20px auto; background-color: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); }
-    h2 { color: #00723f; }
-    p { font-size: 16px; }
-    .footer { margin-top: 30px; font-size: 12px; color: #999; text-align: center; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h2>✅ Pagamento confirmado!</h2>
-    <p>Olá! Recebemos o pagamento da tua encomenda <strong>#${orderId}</strong>.</p>
-    <p>O teu pedido está agora a ser preparado para envio. Obrigado pela tua confiança!</p>
-    <div class="footer">NRenergias • www.nrenergias.pt</div>
-  </div>
-</body>
-</html>
-`;
+  return `
+  <!DOCTYPE html>
+  <html lang="pt">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Encomenda paga</title>
+    <style>
+      body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+      .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); }
+      h2 { color: #00723f; }
+      p, li { font-size: 16px; line-height: 1.5; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>📦 Encomenda #${orderId} foi paga!</h2>
+      <p>A encomenda foi marcada como paga e está pronta para ser processada e enviada.</p>
+      <p><strong>Total:</strong> €${order.total_amount.toFixed(2)}</p>
+      <h3>Produtos:</h3>
+      <ul>
+        ${listaProdutosHtml}
+      </ul>
+      <p><strong>Cliente:</strong> ${user.full_name} (${user.email})</p>
+      <p><strong>Endereço:</strong> ${order.shipping_address}</p>
+      <p><strong>Telefone:</strong> ${order.phone}</p>
+    </div>
+  </body>
+  </html>
+  `;
+};
+
+// --- Template para o cliente com detalhes ---
+const gerarEmailCliente = (orderId, order, items) => {
+  const listaProdutosHtml = items.map(item => `
+    <li>${item.product_name} - Quantidade: ${item.quantity} - Preço: €${item.price.toFixed(2)}</li>
+  `).join('');
+
+  return `
+  <!DOCTYPE html>
+  <html lang="pt">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Pagamento recebido</title>
+    <style>
+      body { font-family: Arial, sans-serif; background-color: #f8f8f8; margin: 0; padding: 0; }
+      .container { max-width: 600px; margin: 20px auto; background-color: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); }
+      h2 { color: #00723f; }
+      p, li { font-size: 16px; }
+      .footer { margin-top: 30px; font-size: 12px; color: #999; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>✅ Pagamento confirmado!</h2>
+      <p>Olá! Recebemos o pagamento da tua encomenda <strong>#${orderId}</strong>.</p>
+      <p><strong>Produtos comprados:</strong></p>
+      <ul>
+        ${listaProdutosHtml}
+      </ul>
+      <p><strong>Total a pagar:</strong> €${order.total_amount.toFixed(2)}</p>
+      <p>O teu pedido está agora a ser preparado para envio. Obrigado pela tua confiança!</p>
+      <div class="footer">NRenergias • www.nrenergias.pt</div>
+    </div>
+  </body>
+  </html>
+  `;
+};
 
 // --- Handler principal ---
 const notification = async (req, res) => {
@@ -90,41 +114,55 @@ const notification = async (req, res) => {
       console.log('OrderId extraído:', orderId);
 
       if (orderId) {
-        // 1) Atualiza status para "pago"
-        const result = await pool.query(
-          "UPDATE orders SET payment_status = 'pago' WHERE id = $1 RETURNING user_id",
+        // Atualiza status para "pago" e retorna user_id e dados do envio
+        const orderResult = await pool.query(
+          `UPDATE orders SET payment_status = 'pago' WHERE id = $1 RETURNING id, user_id, total_amount, shipping_address, phone`,
           [orderId]
         );
 
-        console.log(`Pedido #${orderId} marcado como pago.`);
-
-        const userId = result.rows[0]?.user_id;
-        let clienteEmail;
-
-        // 2) Busca email do cliente
-        if (userId) {
-          const userResult = await pool.query(
-            "SELECT email FROM users WHERE id = $1",
-            [userId]
-          );
-
-          clienteEmail = userResult.rows[0]?.email;
+        if (orderResult.rows.length === 0) {
+          console.warn(`Pedido #${orderId} não encontrado.`);
+          return res.status(404).send('Pedido não encontrado');
         }
 
-        // 3) Email para empresa
+        const order = orderResult.rows[0];
+        console.log(`Pedido #${orderId} marcado como pago.`);
+
+        // Buscar itens do pedido com nome do produto
+        const itemsResult = await pool.query(
+          `SELECT oi.product_id, oi.quantity, oi.price, p.name as product_name
+           FROM order_items oi
+           JOIN products p ON oi.product_id = p.id
+           WHERE oi.order_id = $1`,
+          [orderId]
+        );
+        const items = itemsResult.rows;
+
+        // Buscar dados do cliente
+        const userResult = await pool.query(
+          "SELECT email, full_name FROM users WHERE id = $1",
+          [order.user_id]
+        );
+        const user = userResult.rows[0];
+
+        if (!user) {
+          console.warn(`Usuário #${order.user_id} não encontrado.`);
+        }
+
+        // Email para empresa
         const empresaEmail = process.env.GMAIL_USER;
         await sendPaymentEmail(
           empresaEmail,
           `Encomenda #${orderId} foi paga!`,
-          gerarEmailEmpresa(orderId)
+          gerarEmailEmpresa(orderId, order, items, user)
         );
 
-        // 4) Email para cliente, se houver
-        if (clienteEmail) {
+        // Email para cliente, se houver email
+        if (user?.email) {
           await sendPaymentEmail(
-            clienteEmail,
+            user.email,
             'A tua encomenda foi paga com sucesso, em breve receberás o teu produto!',
-            gerarEmailCliente(orderId)
+            gerarEmailCliente(orderId, order, items)
           );
         } else {
           console.warn(`Nenhum email de cliente encontrado para o pedido #${orderId}.`);
