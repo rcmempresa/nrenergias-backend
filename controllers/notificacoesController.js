@@ -29,14 +29,19 @@ const sendPaymentEmail = async (to, subject, html) => {
 const gerarTabelaProdutos = (items) => {
   if (!items || items.length === 0) return '<p>Nenhum produto encontrado.</p>';
 
-  const rows = items.map(item => `
-    <tr>
-      <td>${item.product_name}</td>
-      <td style="text-align: center;">${item.quantity}</td>
-      <td style="text-align: right;">€${item.price.toFixed(2)}</td>
-      <td style="text-align: right;">€${item.total.toFixed(2)}</td>
-    </tr>
-  `).join('');
+  const rows = items.map(item => {
+    const price = Number(item.price);
+    const total = Number(item.total);
+
+    return `
+      <tr>
+        <td>${item.product_name}</td>
+        <td style="text-align: center;">${item.quantity}</td>
+        <td style="text-align: right;">€${price.toFixed(2)}</td>
+        <td style="text-align: right;">€${total.toFixed(2)}</td>
+      </tr>
+    `;
+  }).join('');
 
   return `
     <table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-top: 20px;">
@@ -54,6 +59,7 @@ const gerarTabelaProdutos = (items) => {
     </table>
   `;
 };
+
 
 // --- Template para email da empresa ---
 const gerarEmailEmpresa = (orderId) => `
