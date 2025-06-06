@@ -79,9 +79,15 @@ const gerarEmailCliente = (orderId) => `
 const notification = async (req, res) => {
   const notification = req.body;
 
+  // Logs para debug
+  console.log('Payload recebido:', notification);
+
   try {
     if (notification.status === 'success') {
       const orderId = notification.key;
+
+      // Log do orderId extraído
+      console.log('OrderId extraído:', orderId);
 
       if (orderId) {
         // 1) Atualiza status para "pago"
