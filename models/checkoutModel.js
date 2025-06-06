@@ -44,21 +44,26 @@ const createOrderItems = async (client, orderId, items) => {
   for (const item of items) {
     const isMontagem = item.product_id === "montagem";
 
-    
-    const productId = isMontagem ? 0 : item.product_id;
-
     const values = [
       orderId,
-      productId,
+      isMontagem ? null : item.product_id,
       item.quantity,
       item.price,
       item.price * item.quantity,
       isMontagem ? 'Serviço de Montagem até 3m de tubo' : null
     ];
 
-    await client.query(query, values);
+    try {
+      await client.query(query, values);
+    } catch (error) {
+      console.error("Erro ao inserir item do pedido:", values, error);
+      throw error; // para abortar a transação e ver o erro
+    }
   }
 };
+
+
+
 
 
 
