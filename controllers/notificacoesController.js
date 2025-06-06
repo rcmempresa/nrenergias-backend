@@ -2,7 +2,7 @@ const pool = require('../config/db');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
-// --- Função para envio de email com HTML ---
+// --- Envio de email ---
 const sendPaymentEmail = async (to, subject, html) => {
   const transporterGmail = nodemailer.createTransport({
     host: 'smtp.gmail.com',
@@ -25,7 +25,37 @@ const sendPaymentEmail = async (to, subject, html) => {
   console.log(`Email enviado para: ${to}`);
 };
 
-// --- Template para a empresa ---
+// --- Gera tabela de produtos em HTML ---
+const gerarTabelaProdutos = (items) => {
+  if (!items || items.length === 0) return '<p>Nenhum produto encontrado.</p>';
+
+  const rows = items.map(item => `
+    <tr>
+      <td>${item.product_name}</td>
+      <td style="text-align: center;">${item.quantity}</td>
+      <td style="text-align: right;">€${item.price.toFixed(2)}</td>
+      <td style="text-align: right;">€${item.total.toFixed(2)}</td>
+    </tr>
+  `).join('');
+
+  return `
+    <table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-top: 20px;">
+      <thead style="background-color: #00723f; color: white;">
+        <tr>
+          <th>Produto</th>
+          <th>Quantidade</th>
+          <th>Preço Unitário</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>
+  `;
+};
+
+// --- Template para email da empresa ---
 const gerarEmailEmpresa = (orderId) => `
 <!DOCTYPE html>
 <html lang="pt">
@@ -49,8 +79,8 @@ const gerarEmailEmpresa = (orderId) => `
 </html>
 `;
 
-// --- Template para o cliente ---
-const gerarEmailCliente = (orderId) => `
+// --- Template para o cliente (com produtos) ---
+const gerarEmailCliente = (orderId, tabelaProdutosHtml) => `
 <!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -68,6 +98,7 @@ const gerarEmailCliente = (orderId) => `
   <div class="container">
     <h2>✅ Pagamento confirmado!</h2>
     <p>Olá! Recebemos o pagamento da tua encomenda <strong>#${orderId}</strong>.</p>
+    ${tabelaProdutosHtml}
     <p>O teu pedido está agora a ser preparado para envio. Obrigado pela tua confiança!</p>
     <div class="footer">NRenergias • www.nrenergias.pt</div>
   </div>
@@ -78,19 +109,15 @@ const gerarEmailCliente = (orderId) => `
 // --- Handler principal ---
 const notification = async (req, res) => {
   const notification = req.body;
-
-  // Logs para debug
   console.log('Payload recebido:', notification);
 
   try {
     if (notification.status === 'success') {
       const orderId = notification.key;
-
-      // Log do orderId extraído
       console.log('OrderId extraído:', orderId);
 
       if (orderId) {
-        // 1) Atualiza status para "pago"
+        // 1) Atualiza o pedido como "pago"
         const result = await pool.query(
           "UPDATE orders SET payment_status = 'pago' WHERE id = $1 RETURNING user_id",
           [orderId]
@@ -99,19 +126,34 @@ const notification = async (req, res) => {
         console.log(`Pedido #${orderId} marcado como pago.`);
 
         const userId = result.rows[0]?.user_id;
-        let clienteEmail;
+        let clienteEmail = null;
 
-        // 2) Busca email do cliente
+        // 2) Buscar email do cliente
         if (userId) {
           const userResult = await pool.query(
             "SELECT email FROM users WHERE id = $1",
             [userId]
           );
-
           clienteEmail = userResult.rows[0]?.email;
         }
 
-        // 3) Email para empresa
+        // 3) Buscar itens do pedido
+        const itemsResult = await pool.query(
+          `SELECT 
+             p.nome AS product_name,
+             oi.quantity,
+             oi.price,
+             oi.total
+           FROM order_items oi
+           JOIN products p ON oi.product_id = p.id
+           WHERE oi.order_id = $1`,
+          [orderId]
+        );
+
+        const items = itemsResult.rows;
+        const tabelaHtml = gerarTabelaProdutos(items);
+
+        // 4) Email para empresa
         const empresaEmail = process.env.GMAIL_USER;
         await sendPaymentEmail(
           empresaEmail,
@@ -119,12 +161,12 @@ const notification = async (req, res) => {
           gerarEmailEmpresa(orderId)
         );
 
-        // 4) Email para cliente, se houver
+        // 5) Email para cliente
         if (clienteEmail) {
           await sendPaymentEmail(
             clienteEmail,
             'A tua encomenda foi paga com sucesso, em breve receberás o teu produto!',
-            gerarEmailCliente(orderId)
+            gerarEmailCliente(orderId, tabelaHtml)
           );
         } else {
           console.warn(`Nenhum email de cliente encontrado para o pedido #${orderId}.`);
