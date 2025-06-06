@@ -62,7 +62,7 @@ const gerarTabelaProdutos = (items) => {
 
 
 // --- Template para email da empresa ---
-const gerarEmailEmpresa = (orderId) => `
+const gerarEmailEmpresa = (orderId, tabelaProdutosHtml) => `
 <!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -79,11 +79,13 @@ const gerarEmailEmpresa = (orderId) => `
   <div class="container">
     <h2>📦 Encomenda #${orderId} foi paga!</h2>
     <p>A encomenda com ID <strong>#${orderId}</strong> foi marcada como paga e está pronta para ser processada e enviada.</p>
+    ${tabelaProdutosHtml}
     <p>Verifique no sistema e prepare o envio.</p>
   </div>
 </body>
 </html>
 `;
+
 
 // --- Template para o cliente (com produtos) ---
 const gerarEmailCliente = (orderId, tabelaProdutosHtml) => `
