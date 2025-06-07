@@ -2,140 +2,132 @@ const cartModel = require('../models/cartModel');
 const cartItemModel = require('../models/cartItemModel');
 const pool = require('../config/db');
 
-
+// Adiciona produto ou serviço ao carrinho
 const addItemToCart = async (req, res) => {
-  const { productId, quantidade, precoUnitario } = req.body;
-  const userId = req.userId; 
+  const { productId, serviceId, quantidade, precoUnitario } = req.body;
+  const userId = req.userId;
+
+  if (!productId && !serviceId) {
+    return res.status(400).json({ message: 'É necessário informar productId ou serviceId.' });
+  }
 
   try {
     let cart = await cartModel.getOpenCartByUserId(userId);
-
     if (!cart) {
       cart = await cartModel.createCart(userId);
     }
 
-    const existingItem = await cartItemModel.getItemInCart(cart.cart_id, productId);
+    const existingItem = await cartItemModel.getItemInCart(cart.cart_id, productId, serviceId);
+
+    const precoTotal = precoUnitario * quantidade;
 
     if (existingItem) {
       const newQuantity = existingItem.quantidade + quantidade;
       const updatedTotalPrice = precoUnitario * newQuantity;
       const updatedItem = await cartItemModel.updateItemInCart(existingItem.id, newQuantity, updatedTotalPrice);
-      return res.json({
-        message: 'Quantidade do produto atualizada no carrinho',
-        item: updatedItem,
-      });
+      return res.json({ message: 'Quantidade atualizada no carrinho', item: updatedItem });
     } else {
-      const totalPrice = precoUnitario * quantidade;
-      const newItem = await cartItemModel.addItemToCart(cart.cart_id, productId, quantidade, precoUnitario, totalPrice);
-      return res.status(201).json({
-        message: 'Produto adicionado ao carrinho com sucesso!!!',
-        item: newItem,
-      });
+      const newItem = await cartItemModel.addItemToCart(cart.cart_id, productId, serviceId, quantidade, precoUnitario, precoTotal);
+      return res.status(201).json({ message: 'Item adicionado ao carrinho.', item: newItem });
     }
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erro ao adicionar produto ao carrinho' });
+    return res.status(500).json({ message: 'Erro ao adicionar item ao carrinho.' });
   }
 };
 
+// Lista todos os itens do carrinho (produtos + serviços)
 const getCartItems = async (req, res) => {
-  const userId = req.userId; 
+  const userId = req.userId;
   try {
-    // Chama a função do modelo para obter os itens do carrinho
     const result = await cartModel.getCartItemsByUserId(userId);
-
     if (result.error) {
       return res.status(404).json({ message: result.error });
     }
 
-    // Retorna os itens do carrinho junto com o cart_id
     return res.json({
-      cart_id: result.cart_id,  // Inclui o cart_id na resposta
-      items: result.items
+      cart_id: result.cart_id,
+      items: result.items,
     });
-
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Erro ao recuperar os itens do carrinho.' });
   }
 };
 
-    
+// Remove item do carrinho (produto ou serviço)
+const removeItem = async (req, res) => {
+  const { productId, serviceId } = req.body;
+  const userId = req.userId;
 
-const removeProduct = async (req, res) => {
-  const { id } = req.params;
-  const userId = req.userId; 
+  if (!productId && !serviceId) {
+    return res.status(400).json({ message: 'Informe productId ou serviceId.' });
+  }
 
   try {
-
-    const result = await cartModel.removeProductFromCart(userId, id);
+    const result = await cartModel.removeItemFromCart(userId, productId, serviceId);
 
     if (result.error) {
       return res.status(404).json({ message: result.error });
     }
 
-
-    return res.json({ message: result.message, product: result.product });
+    return res.json({ message: result.message, item: result.item });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erro ao remover produto do carrinho.' });
+    return res.status(500).json({ message: 'Erro ao remover item do carrinho.' });
   }
 };
 
+// Aumenta a quantidade de um item no carrinho
 const increaseQuantity = async (req, res) => {
-  const { cartId, productId } = req.body; 
+  const { cartId, productId, serviceId } = req.body;
+
   try {
-
-  
-    const item = await cartItemModel.getItemInCart(cartId, productId);
-
- 
+    const item = await cartItemModel.getItemInCart(cartId, productId, serviceId);
     if (!item) {
-      return res.status(404).json({ message: 'Item não encontrado no carrinho.' });
+      return res.status(404).json({ message: 'Item não encontrado.' });
     }
 
-   
-    const newQuantity = item.quantidade + 1;  
-    const newTotalPrice = (item.preco_unitario * newQuantity).toFixed(2);  
+    const newQuantity = item.quantidade + 1;
+    const newTotalPrice = (item.preco_unitario * newQuantity).toFixed(2);
 
-    
     const updatedItem = await cartItemModel.updateItemInCart(item.id, newQuantity, newTotalPrice);
-
-   
     return res.json(updatedItem);
   } catch (error) {
-    
-    return res.status(500).json({ message: 'Erro ao aumentar a quantidade do item.', error });
+    console.error(error);
+    return res.status(500).json({ message: 'Erro ao aumentar a quantidade.' });
   }
 };
 
-
-
+// Diminui a quantidade de um item no carrinho
 const decreaseQuantity = async (req, res) => {
-  const { cartId, productId } = req.body;
+  const { cartId, productId, serviceId } = req.body;
 
   try {
-    const item = await cartItemModel.getItemInCart(cartId, productId);
+    const item = await cartItemModel.getItemInCart(cartId, productId, serviceId);
     if (!item) {
-      return res.status(404).json({ message: 'Item não encontrado no carrinho.' });
+      return res.status(404).json({ message: 'Item não encontrado.' });
     }
 
     if (item.quantidade <= 1) {
-      return res.status(400).json({ message: 'A quantidade mínima é 1. Remova o item do carrinho se não o quiser mais.' });
+      return res.status(400).json({ message: 'Quantidade mínima é 1. Remova o item se não desejar mais.' });
     }
 
     const newQuantity = item.quantidade - 1;
     const newTotalPrice = (item.preco_unitario * newQuantity).toFixed(2);
 
     const updatedItem = await cartItemModel.updateItemInCart(item.id, newQuantity, newTotalPrice);
-
     res.json(updatedItem);
   } catch (error) {
-    res.status(500).json({ message: 'Erro ao diminuir a quantidade do item.', error });
+    console.error(error);
+    res.status(500).json({ message: 'Erro ao diminuir a quantidade.' });
   }
 };
 
-
-
-
-module.exports = { addItemToCart,getCartItems, removeProduct ,increaseQuantity,decreaseQuantity};
+module.exports = {
+  addItemToCart,
+  getCartItems,
+  removeItem,
+  increaseQuantity,
+  decreaseQuantity,
+};
