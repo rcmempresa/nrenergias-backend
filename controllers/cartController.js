@@ -163,10 +163,19 @@ const increaseQuantity = async (req, res) => {
 
 
 const decreaseQuantity = async (req, res) => {
-  const { cartId, productId } = req.body;
+  const { cartId, productId, serviceId } = req.body;
 
   try {
-    const item = await cartItemModel.getItemInCart(cartId, productId);
+    let item;
+
+    if (productId) {
+      item = await cartItemModel.getItemInCartByProduct(cartId, productId);
+    } else if (serviceId) {
+      item = await cartItemModel.getItemInCartByService(cartId, serviceId);
+    } else {
+      return res.status(400).json({ message: 'productId ou serviceId deve ser fornecido.' });
+    }
+
     if (!item) {
       return res.status(404).json({ message: 'Item não encontrado no carrinho.' });
     }
@@ -185,6 +194,7 @@ const decreaseQuantity = async (req, res) => {
     res.status(500).json({ message: 'Erro ao diminuir a quantidade do item.', error });
   }
 };
+
 
 
 
