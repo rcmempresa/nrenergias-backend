@@ -3,7 +3,7 @@ const cartItemModel = require('../models/cartItemModel');
 const pool = require('../config/db');
 
 
-const addItemToCart = async (req, res) => {
+/*const addItemToCart = async (req, res) => {
   const { productId, quantidade, precoUnitario } = req.body;
   const userId = req.userId; 
 
@@ -35,6 +35,53 @@ const addItemToCart = async (req, res) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Erro ao adicionar produto ao carrinho' });
+  }
+};
+*/
+
+const addItemToCart = async (req, res) => {
+  const { productId, serviceId, quantidade, precoUnitario } = req.body;
+  const userId = req.userId;
+
+  try {
+    let cart = await cartModel.getOpenCartByUserId(userId);
+
+    if (!cart) {
+      cart = await cartModel.createCart(userId);
+    }
+
+    // Verifica item existente, considerando produto ou serviço
+    let existingItem;
+    if (productId) {
+      existingItem = await cartItemModel.getItemInCartByProduct(cart.cart_id, productId);
+    } else if (serviceId) {
+      existingItem = await cartItemModel.getItemInCartByService(cart.cart_id, serviceId);
+    }
+
+    if (existingItem) {
+      const newQuantity = existingItem.quantidade + quantidade;
+      const updatedTotalPrice = precoUnitario * newQuantity;
+      const updatedItem = await cartItemModel.updateItemInCart(existingItem.id, newQuantity, updatedTotalPrice);
+      return res.json({
+        message: 'Quantidade do item atualizada no carrinho',
+        item: updatedItem,
+      });
+    } else {
+      const totalPrice = precoUnitario * quantidade;
+      let newItem;
+      if (productId) {
+        newItem = await cartItemModel.addItemToCartProduct(cart.cart_id, productId, quantidade, precoUnitario, totalPrice);
+      } else if (serviceId) {
+        newItem = await cartItemModel.addItemToCartService(cart.cart_id, serviceId, quantidade, precoUnitario, totalPrice);
+      }
+      return res.status(201).json({
+        message: 'Item adicionado ao carrinho com sucesso!!!',
+        item: newItem,
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Erro ao adicionar item ao carrinho' });
   }
 };
 
