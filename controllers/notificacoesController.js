@@ -45,7 +45,7 @@ const gerarTabelaProdutos = (items) => {
 
   return `
     <table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse; width: 100%; margin-top: 20px;">
-      <thead style="background-color: #00723f; color: white;">
+      <thead style="background-color: #0080ff; color: white;">
         <tr>
           <th>Produto</th>
           <th>Quantidade</th>
@@ -163,13 +163,13 @@ const notification = async (req, res) => {
         // 3) Buscar itens do pedido
         const itemsResult = await pool.query(
           `SELECT 
-             p.nome AS product_name,
-             oi.quantity,
-             oi.price,
-             oi.total
-           FROM order_items oi
-           JOIN products p ON oi.product_id = p.id
-           WHERE oi.order_id = $1`,
+          COALESCE(p.nome, 'Montagem personalizada') AS product_name,
+          oi.quantity,
+          oi.price,
+          oi.total
+        FROM order_items oi
+        LEFT JOIN products p ON oi.product_id = p.id
+        WHERE oi.order_id = $1`,
           [orderId]
         );
 
