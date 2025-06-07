@@ -107,27 +107,34 @@ const getCartItems = async (req, res) => {
   }
 };
 
-    
-
 const removeProduct = async (req, res) => {
   const { id } = req.params;
   const userId = req.userId; 
+  const { isProduct } = req.body; // booleano que indica se é produto (true) ou serviço (false)
 
   try {
-
-    const result = await cartModel.removeProductFromCart(userId, id);
+    let result;
+    if (isProduct) {
+      // remove produto do carrinho
+      result = await cartModel.removeProductFromCart(userId, id);
+    } else {
+      // remove serviço do carrinho
+      result = await cartModel.removeServiceFromCart(userId, id);
+    }
 
     if (result.error) {
       return res.status(404).json({ message: result.error });
     }
 
-
-    return res.json({ message: result.message, product: result.product });
+    return res.json({ message: result.message, item: result.item });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: 'Erro ao remover produto do carrinho.' });
+    return res.status(500).json({ message: 'Erro ao remover item do carrinho.' });
   }
 };
+
+
+
 
 const increaseQuantity = async (req, res) => {
   const { cartId, productId, serviceId } = req.body;

@@ -110,6 +110,40 @@ const removeProductFromCart = async (userId, productId) => {
   }
 };
 
+const removeServiceFromCart = async (userId, serviceId) => {
+  try {
+    // 1. Recuperar o carrinho do usuário com status "aberto"
+    const cartResult = await pool.query(
+      `SELECT cart_id 
+       FROM carts 
+       WHERE user_id = $1 AND status = 'aberto'`, [userId]
+    );
+
+    if (cartResult.rows.length === 0) {
+      return { error: 'Carrinho não encontrado ou fechado.' };
+    }
+
+    const cartId = cartResult.rows[0].cart_id;
+
+    // 2. Remover o serviço do carrinho
+    const result = await pool.query(
+      `DELETE FROM cart_items 
+       WHERE cart_id = $1 AND service_id = $2 
+       RETURNING id, service_id`, [cartId, serviceId]
+    );
+
+    if (result.rows.length === 0) {
+      return { error: 'Serviço não encontrado no carrinho.' };
+    }
+
+    return { message: 'Serviço removido do carrinho.', service: result.rows[0] };
+
+  } catch (error) {
+    console.error(error);
+    return { error: 'Erro ao remover o serviço do carrinho.' };
+  }
+};
+
 
 
 
@@ -117,5 +151,6 @@ module.exports = {
   getOpenCartByUserId,
   createCart,
   removeProductFromCart,
-  getCartItemsByUserId
+  getCartItemsByUserId,
+  removeServiceFromCart
 };
