@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const productRoutes = require('./routes/productRoutes');
+const servicesRoutes = require('./routes/servicesRoutes');
 const authRoutes = require('./routes/authRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const checkoutRoutes = require ('./routes/checkoutRoutes');
@@ -37,6 +38,7 @@ app.use(express.json());
 
 //rotas
 app.use('/products', productRoutes);
+app.use('/services', servicesRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/carrinho', cartRoutes);
 app.use('/api/checkout', checkoutRoutes);

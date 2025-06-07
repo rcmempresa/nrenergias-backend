@@ -151,7 +151,7 @@ const notification = async (req, res) => {
         const userId = result.rows[0]?.user_id;
         let clienteEmail = null;
 
-        // 2) Buscar email do cliente
+      
         if (userId) {
           const userResult = await pool.query(
             "SELECT email FROM users WHERE id = $1",
@@ -160,7 +160,7 @@ const notification = async (req, res) => {
           clienteEmail = userResult.rows[0]?.email;
         }
 
-        // 3) Buscar itens do pedido
+        
         const itemsResult = await pool.query(
           `SELECT 
           COALESCE(p.nome, 'Montagem personalizada') AS product_name,
@@ -176,7 +176,7 @@ const notification = async (req, res) => {
         const items = itemsResult.rows;
         const tabelaHtml = gerarTabelaProdutos(items);
 
-        // 4) Buscar morada de envio
+        
         const shippingResult = await pool.query(
           `SELECT address, city, zip_code, phone 
            FROM shipping_details 
