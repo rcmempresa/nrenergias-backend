@@ -50,7 +50,7 @@ const getCartItems = async (req, res) => {
 
     // Retorna os itens do carrinho junto com o cart_id
     return res.json({
-      cart_id: result.cart_id,  // Inclui o cart_id na resposta
+      cart_id: result.cart_id, 
       items: result.items
     });
 
