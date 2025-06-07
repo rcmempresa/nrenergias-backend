@@ -49,7 +49,7 @@ const getCartItemsByUserId = async (userId) => {
         ci.preco_unitario, 
         ci.preco_total, 
         COALESCE(p.nome, s.nome) AS nome,
-        COALESCE(p.imagem_url, '') AS imagem_url
+        COALESCE(p.imagem_url, s.imagem_url, '') AS imagem_url
       FROM 
         cart_items ci
       LEFT JOIN 
