@@ -60,9 +60,23 @@ const gerarTabelaProdutos = (items) => {
   `;
 };
 
+// --- Gera HTML da morada de envio ---
+const gerarMoradaHtml = (morada) => {
+  if (!morada) return '<p><strong>Morada:</strong> Não disponível.</p>';
+
+  return `
+    <div style="margin-top: 20px;">
+      <h3>📍 Detalhes de envio</h3>
+      <p><strong>Morada:</strong> ${morada.address}</p>
+      <p><strong>Cidade:</strong> ${morada.city}</p>
+      <p><strong>Código Postal:</strong> ${morada.zip_code}</p>
+      <p><strong>Telefone:</strong> ${morada.phone}</p>
+    </div>
+  `;
+};
 
 // --- Template para email da empresa ---
-const gerarEmailEmpresa = (orderId, tabelaProdutosHtml) => `
+const gerarEmailEmpresa = (orderId, tabelaProdutosHtml, moradaHtml) => `
 <!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -80,15 +94,15 @@ const gerarEmailEmpresa = (orderId, tabelaProdutosHtml) => `
     <h2>📦 Encomenda #${orderId} foi paga!</h2>
     <p>A encomenda com ID <strong>#${orderId}</strong> foi marcada como paga e está pronta para ser processada e enviada.</p>
     ${tabelaProdutosHtml}
+    ${moradaHtml}
     <p>Verifique no sistema e prepare o envio.</p>
   </div>
 </body>
 </html>
 `;
 
-
-// --- Template para o cliente (com produtos) ---
-const gerarEmailCliente = (orderId, tabelaProdutosHtml) => `
+// --- Template para o cliente ---
+const gerarEmailCliente = (orderId, tabelaProdutosHtml, moradaHtml) => `
 <!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -107,6 +121,7 @@ const gerarEmailCliente = (orderId, tabelaProdutosHtml) => `
     <h2>✅ Pagamento confirmado!</h2>
     <p>Olá! Recebemos o pagamento da tua encomenda <strong>#${orderId}</strong>.</p>
     ${tabelaProdutosHtml}
+    ${moradaHtml}
     <p>O teu pedido está agora a ser preparado para envio. Obrigado pela tua confiança!</p>
     <div class="footer">NRenergias • www.nrenergias.pt</div>
   </div>
@@ -125,7 +140,7 @@ const notification = async (req, res) => {
       console.log('OrderId extraído:', orderId);
 
       if (orderId) {
-        // 1) Atualiza o pedido como "pago"
+        // 1) Atualiza status para "pago"
         const result = await pool.query(
           "UPDATE orders SET payment_status = 'pago' WHERE id = $1 RETURNING user_id",
           [orderId]
@@ -161,20 +176,31 @@ const notification = async (req, res) => {
         const items = itemsResult.rows;
         const tabelaHtml = gerarTabelaProdutos(items);
 
-        // 4) Email para empresa
+        // 4) Buscar morada de envio
+        const shippingResult = await pool.query(
+          `SELECT address, city, zip_code, phone 
+           FROM shipping_details 
+           WHERE order_id = $1`,
+          [orderId]
+        );
+
+        const shipping = shippingResult.rows[0];
+        const moradaHtml = gerarMoradaHtml(shipping);
+
+        // 5) Email para empresa
         const empresaEmail = process.env.GMAIL_USER;
         await sendPaymentEmail(
           empresaEmail,
           `Encomenda #${orderId} foi paga!`,
-          gerarEmailEmpresa(orderId, tabelaHtml)
+          gerarEmailEmpresa(orderId, tabelaHtml, moradaHtml)
         );
 
-        // 5) Email para cliente
+        // 6) Email para cliente
         if (clienteEmail) {
           await sendPaymentEmail(
             clienteEmail,
             'A tua encomenda foi paga com sucesso, em breve receberás o teu produto!',
-            gerarEmailCliente(orderId, tabelaHtml)
+            gerarEmailCliente(orderId, tabelaHtml, moradaHtml)
           );
         } else {
           console.warn(`Nenhum email de cliente encontrado para o pedido #${orderId}.`);
