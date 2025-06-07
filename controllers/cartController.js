@@ -36,8 +36,8 @@ const pool = require('../config/db');
     console.error(error);
     return res.status(500).json({ message: 'Erro ao adicionar produto ao carrinho' });
   }
-};
-*/
+};*/
+
 
 const addItemToCart = async (req, res) => {
   const { productId, serviceId, quantidade, precoUnitario } = req.body;
@@ -130,31 +130,35 @@ const removeProduct = async (req, res) => {
 };
 
 const increaseQuantity = async (req, res) => {
-  const { cartId, productId } = req.body; 
+  const { cartId, productId, serviceId } = req.body;
+
   try {
+    let item;
 
-  
-    const item = await cartItemModel.getItemInCart(cartId, productId);
+    if (productId) {
+      item = await cartItemModel.getItemInCartByProduct(cartId, productId);
+    } else if (serviceId) {
+      item = await cartItemModel.getItemInCartByService(cartId, serviceId);
+    } else {
+      return res.status(400).json({ message: 'productId ou serviceId deve ser fornecido.' });
+    }
 
- 
     if (!item) {
       return res.status(404).json({ message: 'Item não encontrado no carrinho.' });
     }
 
-   
-    const newQuantity = item.quantidade + 1;  
-    const newTotalPrice = (item.preco_unitario * newQuantity).toFixed(2);  
+    const newQuantity = item.quantidade + 1;
+    const newTotalPrice = (item.preco_unitario * newQuantity).toFixed(2);
 
-    
     const updatedItem = await cartItemModel.updateItemInCart(item.id, newQuantity, newTotalPrice);
 
-   
     return res.json(updatedItem);
+
   } catch (error) {
-    
     return res.status(500).json({ message: 'Erro ao aumentar a quantidade do item.', error });
   }
 };
+
 
 
 
