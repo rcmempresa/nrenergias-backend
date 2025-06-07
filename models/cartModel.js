@@ -41,20 +41,24 @@ const getCartItemsByUserId = async (userId) => {
 
     // 2. Recuperar os itens do carrinho
     const result = await pool.query(
-      `SELECT 
-         ci.id, 
-         ci.product_id, 
-         ci.quantidade, 
-         ci.preco_unitario, 
-         ci.preco_total, 
-         p.nome, 
-         p.imagem_url
-       FROM 
-         cart_items ci
-       JOIN 
-         products p ON ci.product_id = p.id
-       WHERE 
-         ci.cart_id = $1`, [cartId]
+        `SELECT 
+        ci.id, 
+        ci.product_id,
+        ci.service_id,
+        ci.quantidade, 
+        ci.preco_unitario, 
+        ci.preco_total, 
+        COALESCE(p.nome, s.nome) AS nome,
+        COALESCE(p.imagem_url, '') AS imagem_url
+      FROM 
+        cart_items ci
+      LEFT JOIN 
+        products p ON ci.product_id = p.id
+      LEFT JOIN 
+        services s ON ci.service_id = s.id
+      WHERE 
+        ci.cart_id = $1
+      `, [cartId]
     );
 
     if (result.rows.length === 0) {
