@@ -66,7 +66,8 @@ const gerarMoradaHtml = (morada) => {
 
   return `
     <div style="margin-top: 20px;">
-      <h3>📍 Detalhes de envio</h3>
+      <h3>📍 Morada para o envio</h3>
+      <p><strong>Nome:</strong> ${morada.full_name}</p>
       <p><strong>Morada:</strong> ${morada.address}</p>
       <p><strong>Cidade:</strong> ${morada.city}</p>
       <p><strong>Código Postal:</strong> ${morada.zip_code}</p>
@@ -179,9 +180,9 @@ const notification = async (req, res) => {
 
         
         const shippingResult = await pool.query(
-          `SELECT address, city, zip_code, phone 
-           FROM shipping_details 
-           WHERE order_id = $1`,
+          `SELECT full_name, address, city, zip_code, phone 
+          FROM shipping_details 
+          WHERE order_id = $1`,
           [orderId]
         );
 
