@@ -36,7 +36,6 @@ const createShippingDetails = async (client, order_id, shipping_details) => {
 
 
 const createOrderItems = async (client, orderId, items) => {
-
   const query = `
     INSERT INTO order_items (order_id, product_id, service_id, quantity, price, total, description)
     VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -44,18 +43,36 @@ const createOrderItems = async (client, orderId, items) => {
 
   for (const item of items) {
     console.log('Item recebido:', item);
-    const isMontagem = item.product_id === 'montagem' || item.service_id === 'montagem';
+
+    const isMontagem = item.product_id === 'montagem';
+
+
+    let productIdToInsert = null;
+    let serviceIdToInsert = null;
+    let descriptionToInsert = null;
+
+    if (isMontagem) {
+      // Caso montagem
+      descriptionToInsert = 'Serviço de Montagem até 3m de tubo';
+    } else if (typeof item.product_id === 'string') {
+      // Serviço: product_id veio como nome do serviço
+      descriptionToInsert = item.product_id;
+      serviceIdToInsert = item.service_id || null;
+    } else {
+      // Produto normal
+      productIdToInsert = item.product_id || null;
+      serviceIdToInsert = item.service_id || null;
+    }
 
     const values = [
       orderId,
-      isMontagem ? null : item.product_id || null,
-      isMontagem ? null : item.service_id || null,
+      productIdToInsert,
+      serviceIdToInsert,
       item.quantity,
       item.price,
       item.price * item.quantity,
-      isMontagem ? 'Serviço de Montagem até 3m de tubo' : item.description || null
+      descriptionToInsert,
     ];
-    
 
     try {
       await client.query(query, values);
