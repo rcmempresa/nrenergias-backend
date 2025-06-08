@@ -162,19 +162,20 @@ const notification = async (req, res) => {
 
         
         const itemsResult = await pool.query(
-          `SELECT 
-          COALESCE(p.nome, 'Montagem personalizada') AS product_name,
+        `SELECT 
+          COALESCE(p.nome, oi.description, 'Item sem descrição') AS product_name,
           oi.quantity,
           oi.price,
           oi.total
         FROM order_items oi
         LEFT JOIN products p ON oi.product_id = p.id
         WHERE oi.order_id = $1`,
-          [orderId]
-        );
+        [orderId]
+      );
 
-        const items = itemsResult.rows;
-        const tabelaHtml = gerarTabelaProdutos(items);
+      const items = itemsResult.rows;
+      const tabelaHtml = gerarTabelaProdutos(items);
+
 
         
         const shippingResult = await pool.query(
