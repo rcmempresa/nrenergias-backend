@@ -38,12 +38,12 @@ const handleCheckout = async (req, res) => {
     const { customer, key, value, capture } = req.body;
 
     // Faz a requisição para a API Easypay
-    const response = await fetch('https://api.test.easypay.pt/2.0/single', {
+    const response = await fetch('https://api.prod.easypay.pt/2.0/single', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        AccountId: '474fc341-a2c9-4b4e-a9c9-da669b273591',
-        ApiKey: '9dcefa96-cbc9-4088-bffd-05e4cd5b6800',
+        AccountId: 'a58ddfb7-cfeb-4dee-8621-52953be5b4f0',
+        ApiKey: '0950005e-6b3e-42e8-b13a-de5c67f7cbe2',
       },
       body: JSON.stringify({
         customer,
