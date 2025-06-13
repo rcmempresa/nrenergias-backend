@@ -71,6 +71,7 @@ const gerarMoradaHtml = (morada) => {
       <p><strong>Morada:</strong> ${morada.address}</p>
       <p><strong>Cidade:</strong> ${morada.city}</p>
       <p><strong>Código Postal:</strong> ${morada.zip_code}</p>
+      <p><strong>Número de Contribuinte:</strong> ${morada.nif}</p>
       <p><strong>Telefone:</strong> ${morada.phone}</p>
     </div>
   `;
@@ -180,7 +181,7 @@ const notification = async (req, res) => {
 
         
         const shippingResult = await pool.query(
-          `SELECT full_name, address, city, zip_code, phone 
+          `SELECT full_name, address, city, zip_code, phone, nif
           FROM shipping_details 
           WHERE order_id = $1`,
           [orderId]
