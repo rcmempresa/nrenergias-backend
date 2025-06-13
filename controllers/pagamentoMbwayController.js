@@ -57,7 +57,7 @@ const handleCheckout = async (req, res) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        AccountId: 'a58ddfb7-cfeb-4dee-8621-52953be5b4f0', // substitua pelos seus dados reais em produção
+        AccountId: 'a58ddfb7-cfeb-4dee-8621-52953be5b4f0',
         ApiKey: '0950005e-6b3e-42e8-b13a-de5c67f7cbe2'
       },
       body: JSON.stringify(body)
