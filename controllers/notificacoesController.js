@@ -15,7 +15,7 @@ const sendPaymentEmail = async (to, subject, html) => {
   });
 
   const mailOptions = {
-    from: process.env.GMAIL_USER,
+    from: `"NRenergias" <${process.env.GMAIL_USER}>`,
     to,
     subject,
     html,
@@ -190,8 +190,7 @@ const notification = async (req, res) => {
         const shipping = shippingResult.rows[0];
         const moradaHtml = gerarMoradaHtml(shipping);
 
-        // 5) Email para empresa
-        const empresaEmail = process.env.GMAIL_USER;
+        const empresaEmail = 'geral@nrenergias.pt';
         await sendPaymentEmail(
           empresaEmail,
           `Encomenda #${orderId} foi paga!`,
