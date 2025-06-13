@@ -24,7 +24,7 @@ const sendPaymentEmail = async (to, paymentData) => {
       <ul>
         <li><strong>Entidade:</strong> ${paymentData.entity}</li>
         <li><strong>Referência:</strong> ${paymentData.reference}</li>
-        <li><strong>Valor:</strong> ${paymentData.value}€</li>
+        <li><strong>Valor:</strong> ${Number(paymentData.value).toFixed(2)}€</li>
       </ul>
       <p>Obrigado pela sua compra!</p>
     `,
