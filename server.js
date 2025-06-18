@@ -4,7 +4,9 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs'); // Importar o módulo 'fs' para criar diretórios
 
+// Suas rotas existentes
 const productRoutes = require('./routes/productRoutes');
 const servicesRoutes = require('./routes/servicesRoutes');
 const authRoutes = require('./routes/authRoutes');
@@ -25,26 +27,32 @@ require('dotenv').config();
 const app = express();
 
 app.use(cookieParser());
+
 app.use(cors({
   origin: 'https://www.nrenergias.pt',
   credentials: true,
 }));
+
 app.use(express.json());
 
 // --- DEFINA O SEU CAMINHO DE UPLOAD ---
-// ESTE DEVE CORRESPONDER AO 'Mount Path' QUE VOCÊ DEFINIU NO RAILWAY
-const VOLUME_MOUNT_PATH = '/mnt/data'; // <-- ESCOLHA ESTE CAMINHO NO RAILWAY
+// ESTE DEVE CORRESPONDER EXATAMENTE AO 'Mount Path' QUE VOCÊ DEFINIU NO RAILWAY
+const VOLUME_MOUNT_PATH = '/app/data'; // <--- CORRIGIDO PARA O SEU MOUNT PATH
 
 // Onde as imagens serão realmente salvas dentro do volume persistente
 const UPLOADS_SUBDIRECTORY = 'uploads';
 const ABSOLUTE_UPLOAD_PATH = path.join(VOLUME_MOUNT_PATH, UPLOADS_SUBDIRECTORY);
 
+// --- Crie o diretório de uploads se ele não existir ---
+// Isso é importante para garantir que o Multer tenha onde escrever
+if (!fs.existsSync(ABSOLUTE_UPLOAD_PATH)) {
+    fs.mkdirSync(ABSOLUTE_UPLOAD_PATH, { recursive: true });
+    console.log(`Diretório de uploads criado: ${ABSOLUTE_UPLOAD_PATH}`);
+}
+
 // --- CONFIGURAÇÃO DO MULTER ---
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    // Assegura que o diretório de destino exista dentro do volume
-    // O Multer deve criá-lo se não existir, mas você pode adicionar
-    // fs.mkdirSync(ABSOLUTE_UPLOAD_PATH, { recursive: true }) se tiver problemas.
     cb(null, ABSOLUTE_UPLOAD_PATH);
   },
   filename: function (req, file, cb) {
@@ -73,17 +81,13 @@ app.post('/upload/image', upload.single('image'), (req, res) => {
     return res.status(400).json({ message: 'Nenhum arquivo de imagem foi enviado.' });
   }
 
-  // A URL que o frontend vai usar para acessar a imagem
-  // O '/uploads' aqui é o prefixo URL que você quer no seu domínio,
-  // não o caminho físico no disco.
-  const imageUrl = `<span class="math-inline">\{process\.env\.BACKEND\_URL\}/</span>{UPLOADS_SUBDIRECTORY}/${req.file.filename}`;
-  // console.log(`Imagem salva em: ${req.file.path}, URL gerada: ${imageUrl}`);
+  const imageUrl = `${process.env.BACKEND_URL}/${UPLOADS_SUBDIRECTORY}/${req.file.filename}`;
+  console.log(`Imagem salva em: ${req.file.path}, URL gerada: ${imageUrl}`); // Mantenha para depuração
 
   res.status(200).json({ url: imageUrl });
 });
 
 // --- SERVIÇO DE ARQUIVOS ESTÁTICOS ---
-// O prefixo '/uploads' na URL do navegador vai servir arquivos de ABSOLUTE_UPLOAD_PATH
 app.use(`/${UPLOADS_SUBDIRECTORY}`, express.static(ABSOLUTE_UPLOAD_PATH));
 
 // --- SUAS ROTAS EXISTENTES ---
