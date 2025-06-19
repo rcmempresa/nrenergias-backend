@@ -128,8 +128,8 @@ const adicionarProduto = async (req, res) => {
 
 const atualizarProduto = async (req, res) => {
     try {
-        const { id } = req.params; // ID do produto a ser atualizado
-        const { // Dados do corpo da requisição que podem ser atualizados
+        const { id } = req.params;
+        const { 
             nome,
             descricao,
             preco,
@@ -137,18 +137,21 @@ const atualizarProduto = async (req, res) => {
             marca,
             categoria,
             imagem_url,
-            imagens, // Este é um array de URLs
+            imagens,
             descricao_completa,
             old_price,
             rating,
             status,
-            avaliacoes, // Adicionado avaliacoes aqui
+            avaliacoes,
             caracteristicas,
         } = req.body;
 
         const fields = []; // Array para armazenar os campos a serem atualizados
         const values = []; // Array para armazenar os valores dos campos
         let paramIndex = 1; // Índice para os parâmetros da query ($1, $2, etc.)
+
+        // Função auxiliar para limpar URLs de ';', se necessário
+        const cleanUrl = (url) => typeof url === 'string' ? url.replace(/;$/, '') : url;
 
         // Mapeia os campos do body para a query UPDATE
         if (nome !== undefined) {
@@ -177,53 +180,56 @@ const atualizarProduto = async (req, res) => {
         }
         if (imagem_url !== undefined) {
             fields.push(`imagem_url = $${paramIndex++}`);
-            values.push(imagem_url);
+            values.push(cleanUrl(imagem_url)); 
         }
         
-        // --- CORREÇÃO 1: Tratamento de arrays para 'imagens' ---
+       
         if (imagens !== undefined) {
             fields.push(`imagens = $${paramIndex++}`);
-            // PostgreSQL espera arrays como '{item1,item2}' ou para strings com espaços/vírgulas '{"item 1","item,2"}'
-            // A forma mais segura é passar o array diretamente para o driver 'pg', ele o converterá.
-            // Se 'imagens' não for um array (e.g., null), trate-o como null para a DB
-            values.push(Array.isArray(imagens) ? imagens : null);
+            if (Array.isArray(imagens)) {
+                // Limpa cada URL dentro do array
+                const cleanedImages = imagens.map(url => cleanUrl(url));
+                values.push(cleanedImages); // O driver 'pg' converte o array JS para TEXT[]
+            } else {
+                values.push(null);
+            }
         }
 
         if (descricao_completa !== undefined) {
             fields.push(`descricao_completa = $${paramIndex++}`);
             values.push(descricao_completa);
         }
+        // --- Correção: Converter old_price para Number ---
         if (old_price !== undefined) {
             fields.push(`old_price = $${paramIndex++}`);
-            values.push(old_price);
+            values.push(Number(old_price));
         }
+        // --- Correção: Converter rating para Number ---
         if (rating !== undefined) {
             fields.push(`rating = $${paramIndex++}`);
-            values.push(rating);
+            values.push(Number(rating));
         }
         if (status !== undefined) {
             fields.push(`status = $${paramIndex++}`);
             values.push(status);
         }
-        // --- CORREÇÃO 2: Adicionado 'avaliacoes' aqui ---
         if (avaliacoes !== undefined) {
             fields.push(`avaliacoes = $${paramIndex++}`);
             values.push(avaliacoes);
         }
-        // --- CORREÇÃO 3: Tratamento de JSON para 'caracteristicas' ---
         if (caracteristicas !== undefined) {
-        fields.push(`caracteristicas = $${paramIndex++}`);
-        try {
-            // Tenta fazer parse se for string, para ter certeza que é um objeto antes de stringify
-            const parsedCaracteristicas = typeof caracteristicas === 'string'
-                ? JSON.parse(caracteristicas) // Isso irá converter a string para um objeto JS
-                : caracteristicas; // Se já é um objeto, usa como está
-            values.push(JSON.stringify(parsedCaracteristicas)); // Garante que é uma string JSON para o DB
-        } catch (e) {
-            console.warn("Caracteristicas não é um JSON válido ou objeto:", caracteristicas, e);
-            values.push(null); // Ou você pode querer lançar um erro aqui
+            fields.push(`caracteristicas = $${paramIndex++}`);
+            try {
+                const parsedCaracteristicas = typeof caracteristicas === 'string'
+                    ? JSON.parse(caracteristicas)
+                    : caracteristicas;
+                // Garante que é um objeto antes de stringify. Se for null, stringify(null) é "null".
+                values.push(parsedCaracteristicas !== null ? JSON.stringify(parsedCaracteristicas) : null);
+            } catch (e) {
+                console.warn("Caracteristicas não é um JSON válido ou objeto, ou ocorreu um erro na serialização:", caracteristicas, e);
+                values.push(null); // Em caso de erro, enviar null
+            }
         }
-}
 
         // Se nenhum campo foi fornecido para atualização
         if (fields.length === 0) {
@@ -240,7 +246,7 @@ const atualizarProduto = async (req, res) => {
             RETURNING *;
         `;
 
-        // --- Adicione logs temporários para depuração, se ainda precisar ---
+        // --- Mantenha estes logs temporários para depuração ---
         console.log("---------------------------------------");
         console.log("QUERY DE UPDATE GERADA:");
         console.log(query);
@@ -258,7 +264,6 @@ const atualizarProduto = async (req, res) => {
 
     } catch (err) {
         console.error("Erro ao atualizar produto:", err);
-        // Retorna o detalhe do erro apenas em desenvolvimento para não expor info sensível
         res.status(500).json({ error: "Erro interno do servidor ao atualizar produto", details: err.message });
     }
 };
