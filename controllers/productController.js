@@ -143,7 +143,7 @@ const atualizarProduto = async (req, res) => {
             rating,
             status,
             avaliacoes,
-            caracteristicas, // Este campo é TEXT no seu DB, mas deve ser um JSON string VÁLIDO
+            caracteristicas,
         } = req.body;
 
         const fields = [];
@@ -213,28 +213,21 @@ const atualizarProduto = async (req, res) => {
             values.push(avaliacoes);
         }
 
-        // --- COMEÇA AQUI A CORREÇÃO DE CARACTERÍSTICAS COM CAST EXPLÍCITO ---
         if (caracteristicas !== undefined) {
-            // Adicionamos '::text' para explicitamente lançar o tipo para TEXT
-            fields.push(`caracteristicas = $${paramIndex++}::text`); 
+            fields.push(`caracteristicas = $${paramIndex++}`);
             let finalCaracteristicasValue = null;
-
             if (typeof caracteristicas === 'object' && caracteristicas !== null) {
+                finalCaracteristicasValue = caracteristicas; 
+            } else if (typeof caracteristicas === 'string' && caracteristicas.trim() !== '') {
                 try {
-                    finalCaracteristicasValue = JSON.stringify(caracteristicas);
-                } catch (e) {
-                    console.warn("Caracteristicas (objeto JS) não pôde ser serializado para JSON:", caracteristicas, e.message);
-                }
-            } 
-            else if (typeof caracteristicas === 'string' && caracteristicas.trim() !== '') {
-                try {
-                    finalCaracteristicasValue = JSON.stringify(JSON.parse(caracteristicas));
+                    finalCaracteristicasValue = JSON.parse(caracteristicas); 
                 } catch (e) {
                     console.warn("Caracteristicas (string) não é um JSON válido. Será guardado como NULL.", caracteristicas, e.message);
                 }
             }
-            values.push(finalCaracteristicasValue);
+            values.push(finalCaracteristicasValue); 
         }
+        
         // --- FIM DA CORREÇÃO DE CARACTERÍSTICAS ---
 
         if (fields.length === 0) {
