@@ -126,6 +126,116 @@ const adicionarProduto = async (req, res) => {
     }
 };
 
+const atualizarProduto = async (req, res) => {
+    try {
+        const { id } = req.params; // ID do produto a ser atualizado
+        const { // Dados do corpo da requisição que podem ser atualizados
+            nome,
+            descricao,
+            preco,
+            estoque,
+            marca,
+            categoria,
+            imagem_url,
+            imagens,
+            descricao_completa,
+            old_price,
+            rating,
+            status,
+            caracteristicas,
+        } = req.body;
+
+        const fields = []; // Array para armazenar os campos a serem atualizados
+        const values = []; // Array para armazenar os valores dos campos
+        let paramIndex = 1; // Índice para os parâmetros da query ($1, $2, etc.)
+
+        // Mapeia os campos do body para a query UPDATE
+        if (nome !== undefined) {
+            fields.push(`nome = $${paramIndex++}`);
+            values.push(nome);
+        }
+        if (descricao !== undefined) {
+            fields.push(`descricao = $${paramIndex++}`);
+            values.push(descricao);
+        }
+        if (preco !== undefined) {
+            fields.push(`preco = $${paramIndex++}`);
+            values.push(preco);
+        }
+        if (estoque !== undefined) {
+            fields.push(`estoque = $${paramIndex++}`);
+            values.push(estoque);
+        }
+        if (marca !== undefined) {
+            fields.push(`marca = $${paramIndex++}`);
+            values.push(marca);
+        }
+        if (categoria !== undefined) {
+            fields.push(`categoria = $${paramIndex++}`);
+            values.push(categoria);
+        }
+        if (imagem_url !== undefined) {
+            fields.push(`imagem_url = $${paramIndex++}`);
+            values.push(imagem_url);
+        }
+        if (imagens !== undefined) {
+            fields.push(`imagens = $${paramIndex++}`);
+            // Converte array de strings para formato de array do PostgreSQL
+            values.push(Array.isArray(imagens) ? `{${imagens.join(',')}}` : null);
+        }
+        if (descricao_completa !== undefined) {
+            fields.push(`descricao_completa = $${paramIndex++}`);
+            values.push(descricao_completa);
+        }
+        if (old_price !== undefined) {
+            fields.push(`old_price = $${paramIndex++}`);
+            values.push(old_price);
+        }
+        if (rating !== undefined) {
+            fields.push(`rating = $${paramIndex++}`);
+            values.push(rating);
+        }
+        if (status !== undefined) {
+            fields.push(`status = $${paramIndex++}`);
+            values.push(status);
+        }
+        if (caracteristicas !== undefined) {
+            fields.push(`caracteristicas = $${paramIndex++}`);
+            // Converte objeto JSON para string JSON para o PostgreSQL JSONB ou TEXT
+            values.push(typeof caracteristicas === 'object' && caracteristicas !== null
+                ? JSON.stringify(caracteristicas)
+                : caracteristicas);
+        }
+
+        // Se nenhum campo foi fornecido para atualização
+        if (fields.length === 0) {
+            return res.status(400).json({ error: "Nenhum campo fornecido para atualização." });
+        }
+
+        // Adiciona o ID do produto ao final dos valores para a cláusula WHERE
+        values.push(id);
+
+        const query = `
+            UPDATE products
+            SET ${fields.join(', ')}
+            WHERE id = $${paramIndex}
+            RETURNING *;
+        `;
+
+        const result = await pool.query(query, values);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Produto não encontrado para atualização" });
+        }
+
+        res.json({ message: "Produto atualizado com sucesso", produto: result.rows[0] });
+
+    } catch (err) {
+        console.error("Erro ao atualizar produto:", err);
+        res.status(500).json({ error: "Erro ao atualizar produto", details: err.message });
+    }
+};
+
 
 
 // ➔ Função para eliminar um produto
@@ -155,5 +265,6 @@ module.exports = {
     listarProdutoPorId,
     verificarEstoque,
     adicionarProduto,
+    atualizarProduto,
     eliminarProduto
 };
