@@ -128,8 +128,8 @@ const adicionarProduto = async (req, res) => {
 
 const atualizarProduto = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { 
+        const { id } = req.params; // ID do produto a ser atualizado
+        const { // Dados do corpo da requisição que podem ser atualizados
             nome,
             descricao,
             preco,
@@ -143,7 +143,7 @@ const atualizarProduto = async (req, res) => {
             rating,
             status,
             avaliacoes,
-            caracteristicas,
+            caracteristicas, // Este campo é TEXT no seu DB, mas deve ser um JSON string VÁLIDO
         } = req.body;
 
         const fields = []; // Array para armazenar os campos a serem atualizados
@@ -183,11 +183,9 @@ const atualizarProduto = async (req, res) => {
             values.push(cleanUrl(imagem_url)); 
         }
         
-       
         if (imagens !== undefined) {
             fields.push(`imagens = $${paramIndex++}`);
             if (Array.isArray(imagens)) {
-                // Limpa cada URL dentro do array
                 const cleanedImages = imagens.map(url => cleanUrl(url));
                 values.push(cleanedImages); // O driver 'pg' converte o array JS para TEXT[]
             } else {
@@ -199,15 +197,13 @@ const atualizarProduto = async (req, res) => {
             fields.push(`descricao_completa = $${paramIndex++}`);
             values.push(descricao_completa);
         }
-        // --- Correção: Converter old_price para Number ---
         if (old_price !== undefined) {
             fields.push(`old_price = $${paramIndex++}`);
-            values.push(Number(old_price));
+            values.push(Number(old_price)); // Garante que seja número
         }
-        // --- Correção: Converter rating para Number ---
         if (rating !== undefined) {
             fields.push(`rating = $${paramIndex++}`);
-            values.push(Number(rating));
+            values.push(Number(rating));   // Garante que seja número
         }
         if (status !== undefined) {
             fields.push(`status = $${paramIndex++}`);
@@ -217,19 +213,37 @@ const atualizarProduto = async (req, res) => {
             fields.push(`avaliacoes = $${paramIndex++}`);
             values.push(avaliacoes);
         }
+
+        // --- COMEÇA AQUI A CORREÇÃO DE CARACTERÍSTICAS PARA COLUNA TEXT ---
         if (caracteristicas !== undefined) {
             fields.push(`caracteristicas = $${paramIndex++}`);
-            try {
-                const parsedCaracteristicas = typeof caracteristicas === 'string'
-                    ? JSON.parse(caracteristicas)
-                    : caracteristicas;
-                // Garante que é um objeto antes de stringify. Se for null, stringify(null) é "null".
-                values.push(parsedCaracteristicas !== null ? JSON.stringify(parsedCaracteristicas) : null);
-            } catch (e) {
-                console.warn("Caracteristicas não é um JSON válido ou objeto, ou ocorreu um erro na serialização:", caracteristicas, e);
-                values.push(null); // Em caso de erro, enviar null
+            let finalCaracteristicasValue = null; // Valor padrão se não for válido
+
+            // 1. Tenta tratar como objeto JavaScript (se express.json() já parseou)
+            if (typeof caracteristicas === 'object' && caracteristicas !== null) {
+                try {
+                    finalCaracteristicasValue = JSON.stringify(caracteristicas);
+                } catch (e) {
+                    console.warn("Caracteristicas (objeto JS) não pôde ser serializado para JSON:", caracteristicas, e.message);
+                    // Permanece null
+                }
+            } 
+            // 2. Tenta tratar como string JSON (se express.json() não parseou ou se veio como string)
+            else if (typeof caracteristicas === 'string' && caracteristicas.trim() !== '') {
+                try {
+                    // Tenta parsear para validar. Se for JSON válido, stringify de volta.
+                    // Isso garante que mesmo uma string que pareça JSON mas não seja válida
+                    // (como {cor:azul}) será tratada como inválida aqui.
+                    finalCaracteristicasValue = JSON.stringify(JSON.parse(caracteristicas));
+                } catch (e) {
+                    console.warn("Caracteristicas (string) não é um JSON válido. Será guardado como NULL.", caracteristicas, e.message);
+                    // Permanece null
+                }
             }
+            // 3. Se for undefined, null, ou string vazia, finalCaracteristicasValue permanece null.
+            values.push(finalCaracteristicasValue);
         }
+        // --- FIM DA CORREÇÃO DE CARACTERÍSTICAS ---
 
         // Se nenhum campo foi fornecido para atualização
         if (fields.length === 0) {
@@ -267,7 +281,6 @@ const atualizarProduto = async (req, res) => {
         res.status(500).json({ error: "Erro interno do servidor ao atualizar produto", details: err.message });
     }
 };
-
 
 // ➔ Função para eliminar um produto
 const eliminarProduto = async (req, res) => {
