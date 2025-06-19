@@ -73,7 +73,6 @@ const listarProdutoPorId = async (req, res) => {
 };
 
 
-// ➔ Função para adicionar um novo produto
 const adicionarProduto = async (req, res) => {
     try {
         const {
@@ -88,14 +87,15 @@ const adicionarProduto = async (req, res) => {
             descricao_completa,
             old_price,
             rating,
-            status
+            status,
+            caracteristicas
         } = req.body;
 
         const query = `
             INSERT INTO products
-            (nome, descricao, preco, estoque, marca, categoria, imagem_url, imagens, descricao_completa, old_price, rating, status)
+            (nome, descricao, preco, estoque, marca, categoria, imagem_url, imagens, descricao_completa, old_price, rating, status, caracteristicas)
             VALUES
-            ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
             RETURNING *;
         `;
 
@@ -107,11 +107,14 @@ const adicionarProduto = async (req, res) => {
             marca,
             categoria,
             imagem_url,
-            imagens ? `{${imagens.join(',')}}` : null,
+            imagens && Array.isArray(imagens) ? `{${imagens.join(',')}}` : null,
             descricao_completa,
             old_price,
             rating,
-            status
+            status,
+            typeof caracteristicas === 'object' && caracteristicas !== null
+                ? JSON.stringify(caracteristicas)
+                : caracteristicas 
         ];
 
         const result = await pool.query(query, values);
