@@ -137,12 +137,13 @@ const atualizarProduto = async (req, res) => {
             marca,
             categoria,
             imagem_url,
-            imagens,
+            imagens, // Este é um array de URLs
             descricao_completa,
             old_price,
             rating,
             status,
-            caracteristicas,
+            avaliacoes, // Adicionado avaliacoes aqui
+            caracteristicas, // Este pode ser um objeto ou string JSON
         } = req.body;
 
         const fields = []; // Array para armazenar os campos a serem atualizados
@@ -178,11 +179,16 @@ const atualizarProduto = async (req, res) => {
             fields.push(`imagem_url = $${paramIndex++}`);
             values.push(imagem_url);
         }
+        
+        // --- CORREÇÃO 1: Tratamento de arrays para 'imagens' ---
         if (imagens !== undefined) {
             fields.push(`imagens = $${paramIndex++}`);
-            // Converte array de strings para formato de array do PostgreSQL
-            values.push(Array.isArray(imagens) ? `{${imagens.join(',')}}` : null);
+            // PostgreSQL espera arrays como '{item1,item2}' ou para strings com espaços/vírgulas '{"item 1","item,2"}'
+            // A forma mais segura é passar o array diretamente para o driver 'pg', ele o converterá.
+            // Se 'imagens' não for um array (e.g., null), trate-o como null para a DB
+            values.push(Array.isArray(imagens) ? imagens : null);
         }
+
         if (descricao_completa !== undefined) {
             fields.push(`descricao_completa = $${paramIndex++}`);
             values.push(descricao_completa);
@@ -199,12 +205,29 @@ const atualizarProduto = async (req, res) => {
             fields.push(`status = $${paramIndex++}`);
             values.push(status);
         }
+        // --- CORREÇÃO 2: Adicionado 'avaliacoes' aqui ---
+        if (avaliacoes !== undefined) {
+            fields.push(`avaliacoes = $${paramIndex++}`);
+            values.push(avaliacoes);
+        }
+        // --- CORREÇÃO 3: Tratamento de JSON para 'caracteristicas' ---
         if (caracteristicas !== undefined) {
             fields.push(`caracteristicas = $${paramIndex++}`);
-            // Converte objeto JSON para string JSON para o PostgreSQL JSONB ou TEXT
-            values.push(typeof caracteristicas === 'object' && caracteristicas !== null
-                ? JSON.stringify(caracteristicas)
-                : caracteristicas);
+            // Se o frontend envia como objeto, JSON.stringify. Se já é string (mas é JSON), use como está.
+            // PostgreSQL JSONB exige uma string JSON válida.
+            try {
+                // Tenta fazer parse se for string, para ter certeza que é um objeto antes de stringify
+                const parsedCaracteristicas = typeof caracteristicas === 'string'
+                    ? JSON.parse(caracteristicas)
+                    : caracteristicas;
+                values.push(JSON.stringify(parsedCaracteristicas));
+            } catch (e) {
+                // Se for uma string não-JSON válida, ou outro erro, trate como texto ou erro.
+                // Dependendo da sua necessidade, pode querer lançar um erro ou usar null.
+                // Para JSONB, deve ser JSON válido.
+                console.warn("Caracteristicas não é um JSON válido ou objeto:", caracteristicas, e);
+                values.push(null); // Ou lançar um erro se for obrigatório ser JSON
+            }
         }
 
         // Se nenhum campo foi fornecido para atualização
@@ -222,6 +245,14 @@ const atualizarProduto = async (req, res) => {
             RETURNING *;
         `;
 
+        // --- Adicione logs temporários para depuração, se ainda precisar ---
+        console.log("---------------------------------------");
+        console.log("QUERY DE UPDATE GERADA:");
+        console.log(query);
+        console.log("VALORES DA QUERY:");
+        console.log(values);
+        console.log("---------------------------------------");
+
         const result = await pool.query(query, values);
 
         if (result.rows.length === 0) {
@@ -232,10 +263,10 @@ const atualizarProduto = async (req, res) => {
 
     } catch (err) {
         console.error("Erro ao atualizar produto:", err);
-        res.status(500).json({ error: "Erro ao atualizar produto", details: err.message });
+        // Retorna o detalhe do erro apenas em desenvolvimento para não expor info sensível
+        res.status(500).json({ error: "Erro interno do servidor ao atualizar produto", details: err.message });
     }
 };
-
 
 
 // ➔ Função para eliminar um produto
