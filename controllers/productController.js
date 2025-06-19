@@ -143,7 +143,7 @@ const atualizarProduto = async (req, res) => {
             rating,
             status,
             avaliacoes, // Adicionado avaliacoes aqui
-            caracteristicas, // Este pode ser um objeto ou string JSON
+            caracteristicas,
         } = req.body;
 
         const fields = []; // Array para armazenar os campos a serem atualizados
@@ -212,23 +212,18 @@ const atualizarProduto = async (req, res) => {
         }
         // --- CORREÇÃO 3: Tratamento de JSON para 'caracteristicas' ---
         if (caracteristicas !== undefined) {
-            fields.push(`caracteristicas = $${paramIndex++}`);
-            // Se o frontend envia como objeto, JSON.stringify. Se já é string (mas é JSON), use como está.
-            // PostgreSQL JSONB exige uma string JSON válida.
-            try {
-                // Tenta fazer parse se for string, para ter certeza que é um objeto antes de stringify
-                const parsedCaracteristicas = typeof caracteristicas === 'string'
-                    ? JSON.parse(caracteristicas)
-                    : caracteristicas;
-                values.push(JSON.stringify(parsedCaracteristicas));
-            } catch (e) {
-                // Se for uma string não-JSON válida, ou outro erro, trate como texto ou erro.
-                // Dependendo da sua necessidade, pode querer lançar um erro ou usar null.
-                // Para JSONB, deve ser JSON válido.
-                console.warn("Caracteristicas não é um JSON válido ou objeto:", caracteristicas, e);
-                values.push(null); // Ou lançar um erro se for obrigatório ser JSON
-            }
+        fields.push(`caracteristicas = $${paramIndex++}`);
+        try {
+            // Tenta fazer parse se for string, para ter certeza que é um objeto antes de stringify
+            const parsedCaracteristicas = typeof caracteristicas === 'string'
+                ? JSON.parse(caracteristicas) // Isso irá converter a string para um objeto JS
+                : caracteristicas; // Se já é um objeto, usa como está
+            values.push(JSON.stringify(parsedCaracteristicas)); // Garante que é uma string JSON para o DB
+        } catch (e) {
+            console.warn("Caracteristicas não é um JSON válido ou objeto:", caracteristicas, e);
+            values.push(null); // Ou você pode querer lançar um erro aqui
         }
+}
 
         // Se nenhum campo foi fornecido para atualização
         if (fields.length === 0) {
