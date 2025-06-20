@@ -13,7 +13,7 @@ const getAllEncomendas = async () => {
 
 const getShippingAddressByOrderId = async (orderId) => {
   try {
-    const result = await pool.query('SELECT address FROM shipping_details WHERE order_id = $1', [orderId]);
+    const result = await pool.query('SELECT address, city, zip_code, phone FROM shipping_details WHERE order_id = $1', [orderId]);
     return result.rows[0]; 
   } catch (error) {
     console.error('Erro ao buscar endereço de envio por ID da encomenda:', error);
