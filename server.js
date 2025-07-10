@@ -21,7 +21,6 @@ const pagamentoMultibanco = require('./routes/pagamentoMultibanco');
 const pagamentoMbway = require('./routes/pagamentoMbway');
 const pagamentoCC = require('./routes/pagamentoCC');
 const notificacoes = require('./routes/notificacoes');
-const admin = require('./routes/adminRoutes');
 
 require('dotenv').config();
 
@@ -106,7 +105,6 @@ app.use('/api/referencia/multibanco',pagamentoMultibanco);
 app.use('/api/referencia/mbway',pagamentoMbway);
 app.use('/api/referencia/cc',pagamentoCC);
 app.use('/api/easypay',notificacoes);
-app.use('/api/admin',admin);
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
