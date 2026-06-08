@@ -101,7 +101,7 @@ const gerarTemplateConfirmacao = (name, message) => `
           ${message}
         </div>
         <p>Responderemos o mais brevemente possível. Agradecemos a sua confiança!</p>
-        <a href="https://www.nrenergias.pt" class="button">Visitar o nosso site</a>
+        <a href="https://loja.nrtechsolucion.pt" class="button">Visitar o nosso site</a>
       </div>
       <div class="email-footer">
         © ${new Date().getFullYear()} NRenergias • Todos os direitos reservados

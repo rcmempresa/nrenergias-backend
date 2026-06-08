@@ -112,7 +112,7 @@ const signup = async (req, res) => {
             <p>Obrigado por se registar na nossa plataforma. Estamos muito felizes em tê-lo connosco!</p>
             <p>Agora pode explorar todos os nossos produtos e aproveitar os melhores preços.</p>
             <p>Se precisar de ajuda, entre em contacto connosco.</p>
-            <a href="https://www.nrenergias.pt" class="button">Visitar o site</a>
+            <a href="https://loja.nrtechsolucion.pt" class="button">Visitar o site</a>
           </div>
           <div class="footer">
             &copy; 2025 NR Energias. Todos os direitos reservados.
@@ -153,7 +153,6 @@ const login = async (req, res) => {
       secure: false,
       sameSite: 'Strict',
       maxAge: 3600000,
-      domain: 'localhost',
     });
 
     return res.json({ message: 'Login bem-sucedido', token });

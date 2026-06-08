@@ -125,7 +125,7 @@ const gerarEmailCliente = (orderId, tabelaProdutosHtml, moradaHtml) => `
     ${tabelaProdutosHtml}
     ${moradaHtml}
     <p>O teu pedido está agora a ser preparado para envio. Obrigado pela tua confiança!</p>
-    <div class="footer">NRenergias • www.nrenergias.pt</div>
+    <div class="footer">NRenergias • loja.nrtechsolucion.pt</div>
   </div>
 </body>
 </html>
