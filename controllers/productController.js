@@ -29,16 +29,15 @@ const verificarEstoque = async (req, res) => {
 // Listar produtos
 const listarProdutos = async (req, res) => {
     try {
-        const { search } = req.query;
+        const { search, admin } = req.query;
 
-        let query = 'SELECT * FROM products WHERE estoque >= 1';
+        let query = admin === 'true' ? 'SELECT * FROM products WHERE 1=1' : 'SELECT * FROM products WHERE estoque >= 1';
         let values = [];
 
         if (search) {
-            query += ' AND LOWER(nome) LIKE LOWER($1)'; 
+            query += ` AND LOWER(nome) LIKE LOWER($1)`;
             values.push(`%${search}%`);
         }
-
 
         const result = await pool.query(query, values);
         res.json(result.rows);
@@ -112,9 +111,7 @@ const adicionarProduto = async (req, res) => {
             old_price,
             rating,
             status,
-            typeof caracteristicas === 'object' && caracteristicas !== null
-                ? JSON.stringify(caracteristicas)
-                : caracteristicas 
+            Array.isArray(caracteristicas) ? caracteristicas : null
         ];
 
         const result = await pool.query(query, values);
@@ -215,17 +212,7 @@ const atualizarProduto = async (req, res) => {
 
         if (caracteristicas !== undefined) {
             fields.push(`caracteristicas = $${paramIndex++}`);
-            let finalCaracteristicasValue = null;
-            if (typeof caracteristicas === 'object' && caracteristicas !== null) {
-                finalCaracteristicasValue = caracteristicas; 
-            } else if (typeof caracteristicas === 'string' && caracteristicas.trim() !== '') {
-                try {
-                    finalCaracteristicasValue = JSON.parse(caracteristicas); 
-                } catch (e) {
-                    console.warn("Caracteristicas (string) não é um JSON válido. Será guardado como NULL.", caracteristicas, e.message);
-                }
-            }
-            values.push(finalCaracteristicasValue); 
+            values.push(Array.isArray(caracteristicas) ? caracteristicas : null);
         }
         
         // --- FIM DA CORREÇÃO DE CARACTERÍSTICAS ---

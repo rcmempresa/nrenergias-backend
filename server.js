@@ -21,6 +21,7 @@ const pagamentoMultibanco = require('./routes/pagamentoMultibanco');
 const pagamentoMbway = require('./routes/pagamentoMbway');
 const pagamentoCC = require('./routes/pagamentoCC');
 const notificacoes = require('./routes/notificacoes');
+const categoryRoutes = require('./routes/categoryRoutes');
 
 require('dotenv').config();
 
@@ -29,7 +30,11 @@ const app = express();
 app.use(cookieParser());
 
 app.use(cors({
-  origin: 'https://loja.nrtechsolucion.pt',
+  origin: [
+    'https://loja.nrtechsolucion.pt',
+    'http://localhost:5173',
+    'http://localhost:5174',
+  ],
   credentials: true,
 }));
 
@@ -37,7 +42,7 @@ app.use(express.json());
 
 // --- DEFINA O SEU CAMINHO DE UPLOAD ---
 // ESTE DEVE CORRESPONDER EXATAMENTE AO 'Mount Path' QUE VOCÊ DEFINIU NO RAILWAY
-const VOLUME_MOUNT_PATH = '/app/data'; // <--- CORRIGIDO PARA O SEU MOUNT PATH
+const VOLUME_MOUNT_PATH = process.env.VOLUME_MOUNT_PATH || path.join(__dirname, 'data');
 
 // Onde as imagens serão realmente salvas dentro do volume persistente
 const UPLOADS_SUBDIRECTORY = 'uploads';
@@ -105,6 +110,7 @@ app.use('/api/referencia/multibanco',pagamentoMultibanco);
 app.use('/api/referencia/mbway',pagamentoMbway);
 app.use('/api/referencia/cc',pagamentoCC);
 app.use('/api/easypay',notificacoes);
+app.use('/api/categories', categoryRoutes);
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
